@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { formatIssues } from '../config/config-schema';
+import { configSchema, effortSchema, formatIssues, TIER_ORDER } from '../config/config-schema';
 import { readStoredConfig, restorePrevious, saveConfig, type StoreOutcome } from '../config/config-store';
 import { loadConfig } from '../config/delegate-config';
 import { previousConfigPath } from '../config/routemax-paths';
@@ -7,6 +7,7 @@ import { syncChezmoi } from '../config/sync-chezmoi';
 import { decisionLogPath } from '../decision-log/decision-log';
 import { runDoctorChecks, type DoctorDeps } from '../doctor/doctor-checks';
 import { isRouterEnabled, setRouterEnabled } from '../router-switch/router-switch';
+import { planRoute } from '../routing/plan-route';
 import { readApiKey } from '../worker/read-api-key';
 import { keyIssues, storeApiKey } from '../worker/store-api-key';
 import { decisionStats, readDecisions } from './decision-stats';
@@ -23,6 +24,14 @@ const switchBodySchema = z.object({ enabled: z.boolean() });
 const saveBodySchema = z.object({ config: z.unknown(), baseHash: z.string() });
 const restoreBodySchema = z.object({ baseHash: z.string() });
 const keyBodySchema = z.object({ key: z.string() });
+const planRequestSchema = z.object({
+  task: z.string(),
+  taskType: z.string(),
+  requestedTier: z.enum(TIER_ORDER),
+  claudeEffort: effortSchema.optional(),
+  flags: z.array(z.string()).default([]),
+});
+const previewBodySchema = z.object({ config: z.unknown(), request: planRequestSchema });
 const STORE_ERROR_STATUS = { stale: 409, invalid: 422, missing: 404 } as const;
 
 export const invalid = (issues: string[]): ApiResponse => ({ status: 422, body: { error: 'invalid', issues } });
@@ -120,6 +129,22 @@ function keyRoutes(deps: UiDeps): ApiRoute[] {
   ];
 }
 
+function previewRoutes(): ApiRoute[] {
+  return [
+    {
+      method: 'POST',
+      pattern: /^\/api\/route-preview$/,
+      handle: async ({ body }) => {
+        const parsed = previewBodySchema.safeParse(body);
+        if (!parsed.success) return invalid(formatIssues(parsed.error));
+        const config = configSchema.safeParse(parsed.data.config);
+        if (!config.success) return invalid(formatIssues(config.error));
+        return ok(planRoute(config.data, parsed.data.request));
+      },
+    },
+  ];
+}
+
 export function apiRoutes(deps: UiDeps): ApiRoute[] {
-  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps), ...doctorRoutes(deps), ...keyRoutes(deps)];
+  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps), ...doctorRoutes(deps), ...keyRoutes(deps), ...previewRoutes()];
 }
