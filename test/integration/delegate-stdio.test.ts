@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import type { DelegateConfig } from '../../src/config/config-schema';
 import { DEFAULT_CONFIG_PATH } from '../../src/config/delegate-config';
+import { migrateConfig } from '../../src/config/migrate-config';
 import { decisionLogPath } from '../../src/decision-log/decision-log';
 import { isProxyHealthy } from '../../src/proxy/ensure-proxy';
 import { freePort } from '../helpers/free-port';
@@ -43,8 +45,9 @@ beforeAll(async () => {
   writeFileSync(join(deepseekHome, 'settings.json'), '{}\n');
   writeFileSync(join(root, 'bin', 'security'), `#!/bin/sh\necho ${FAKE_KEY}\n`, { mode: 0o755 });
   writeFileSync(join(root, 'proxy', 'node_modules', '.bin', 'tsx'), `#!/bin/sh\nexec node "${FAKE_UPSTREAM}"\n`, { mode: 0o755 });
-  const config = JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8'));
-  config.proxy = { dir: join(root, 'proxy'), logPath: join(root, 'proxy.log'), telemetryPath: join(root, 'telemetry.jsonl') };
+  const config = migrateConfig(JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8'))) as DelegateConfig;
+  config.providers.deepseek.repairProxy = { port, logPath: join(root, 'proxy.log'), telemetryPath: join(root, 'telemetry.jsonl') };
+  config.proxy = { dir: join(root, 'proxy') };
   config.workerTimeoutMs = 120_000;
   writeFileSync(join(root, 'routing.json'), JSON.stringify(config));
   serverEnv = {
