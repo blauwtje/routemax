@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { runTestCommand } from '../src/worker/run-test-command';
 import { runWorker, workerArgs, type WorkerRun } from '../src/worker/run-worker';
 
 const FAKE_CLAUDE = fileURLToPath(new URL('./fixtures/fake-claude.mjs', import.meta.url));
@@ -64,6 +65,21 @@ describe('runWorker', () => {
     const started = Date.now();
     const { outcome } = await run('hang', { timeoutMs: 300 });
     expect(outcome.stoppedBy).toBe('timeout');
+    expect(Date.now() - started).toBeLessThan(5_000);
+  });
+});
+
+describe('runTestCommand', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'routemax-tests-'));
+
+  it('passes on exit 0 and fails otherwise', async () => {
+    expect(await runTestCommand('exit 0', cwd, 5_000)).toBe('passed');
+    expect(await runTestCommand('exit 1', cwd, 5_000)).toBe('failed');
+  });
+
+  it('stops a test command that runs past its timeout', async () => {
+    const started = Date.now();
+    expect(await runTestCommand('sleep 30', cwd, 200)).toBe('timeout');
     expect(Date.now() - started).toBeLessThan(5_000);
   });
 });
