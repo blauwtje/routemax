@@ -20,7 +20,7 @@ export interface DoctorDeps {
   repoRoot: string;
   config: DelegateConfig;
   registration: ServerRegistration;
-  readApiKey: () => Promise<string>;
+  readApiKey: (keychainService: string) => Promise<string>;
   ensureProxy: (start: ProxyStart) => Promise<'running' | 'started'>;
 }
 
@@ -44,7 +44,7 @@ function checkEnvVars(baseUrl: string | null): DoctorCheck {
 
 async function checkApiKey(deps: DoctorDeps): Promise<DoctorCheck> {
   try {
-    await deps.readApiKey();
+    await deps.readApiKey(deps.config.providers.deepseek.keychainService);
     return pass('DeepSeek key', 'The DeepSeek key is in Keychain.');
   } catch {
     return fix('DeepSeek key', 'No DeepSeek key in Keychain. Store it once: security add-generic-password -a "$USER" -s deepseek_api_key -w');

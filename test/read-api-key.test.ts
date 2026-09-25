@@ -16,15 +16,15 @@ afterEach(() => {
 });
 
 describe('readApiKey', () => {
-  it('returns the password of Keychain service deepseek_api_key', async () => {
-    fakeSecurity('[ "$1" = find-generic-password ] && [ "$4" = -s ] && [ "$5" = deepseek_api_key ] && [ "$6" = -w ] || exit 2\necho sk-fake-keychain');
-    await expect(readApiKey()).resolves.toBe('sk-fake-keychain');
+  it('returns the password of the given Keychain service', async () => {
+    fakeSecurity('[ "$1" = find-generic-password ] && [ "$4" = -s ] && [ "$5" = openrouter_api_key ] && [ "$6" = -w ] || exit 2\necho sk-fake-keychain');
+    await expect(readApiKey('openrouter_api_key')).resolves.toBe('sk-fake-keychain');
   });
 
   it('fails closed with a message that holds no secret when the item is missing', async () => {
     fakeSecurity('echo sk-fake-partial >&2\nexit 44');
-    const error = await readApiKey().catch((caught: Error) => caught);
-    expect(String(error)).toContain('DeepSeek API key not found in Keychain (service deepseek_api_key).');
+    const error = await readApiKey('deepseek_api_key').catch((caught: Error) => caught);
+    expect(String(error)).toContain('API key not found in Keychain (service deepseek_api_key).');
     expect(String(error)).not.toContain('sk-fake-partial');
   });
 });

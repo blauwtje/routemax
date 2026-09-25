@@ -17,7 +17,7 @@ export interface DelegateDeps {
   homeDir: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
-  readApiKey: () => Promise<string>;
+  readApiKey: (keychainService: string) => Promise<string>;
   ensureProxy: (start: ProxyStart) => Promise<unknown>;
 }
 
@@ -96,7 +96,7 @@ async function workerEnvironment(deps: DelegateDeps, provider: Provider, model: 
     await deps.ensureProxy({ dir: deps.config.proxy.dir, port: repairProxy.port, upstreamBaseUrl: provider.baseUrl, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath });
   }
   const baseUrl = repairProxy ? proxyUrl(repairProxy.port) : provider.baseUrl;
-  const apiKey = await deps.readApiKey();
+  const apiKey = await deps.readApiKey(provider.keychainService);
   return buildWorkerEnv({ inherited: deps.env, envVars: parseEnvVars(envVarsText), baseUrl, model, apiKey, effort });
 }
 
