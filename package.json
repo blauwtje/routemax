@@ -6,7 +6,7 @@
   "engines": { "node": ">=20.12" },
   "scripts": {
     "start": "tsx src/server.ts",
-    "setup": "tsx src/setup/run-setup.ts",
+    "setup": "npm install --no-audit --no-fund && tsx src/setup/run-setup.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"

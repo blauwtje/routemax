@@ -39,6 +39,27 @@ function fakeChezmoi(root: string) {
   );
   return { bin, source, applyLog, addLog };
 }
+
+function fakeClaude(root: string, registered: string | null = null) {
+  const state = join(root, 'mcp-registration');
+  const addLog = join(root, 'mcp-add.log');
+  if (registered) writeFileSync(state, registered);
+  mkdirSync(join(root, 'bin'), { recursive: true });
+  writeFileSync(
+    join(root, 'bin', 'claude'),
+    [
+      '#!/bin/sh',
+      'case "$1 $2" in',
+      `  "mcp get") test -f "${state}" || { echo 'No MCP server named "deepseek-delegate".'; exit 1; }; cat "${state}" ;;`,
+      `  "mcp add") shift 2; echo "$@" >> "${addLog}"; echo "$@" > "${state}" ;;`,
+      '  *) exit 1 ;;',
+      'esac',
+      '',
+    ].join('\n'),
+    { mode: 0o755 },
+  );
+  return { addLog };
+}
 const tempRoot = () => mkdtempSync(join(tmpdir(), 'routemax-setup-'));
 
 describe('createDeepseekHome', () => {
@@ -152,17 +173,44 @@ describe('npm run setup', () => {
       encoding: 'utf8',
     });
 
-  it('writes nothing under ~/.claude/, leaves no ANTHROPIC_ variable there, and prints the registration command', () => {
+  it('writes nothing under ~/.claude/, leaves no ANTHROPIC_ variable there, and registers the server at user scope', () => {
     const root = tempRoot();
     const home = join(root, 'home');
     mkdirSync(home);
     const chezmoi = fakeChezmoi(root);
+    const claude = fakeClaude(root);
     const run = runSetup(home, join(root, 'bin'));
     expect(run.status).toBe(0);
     expect(existsSync(join(home, '.claude'))).toBe(false);
     expect(existsSync(join(chezmoi.source, 'dot_claude', 'agents', 'claude-opus-high.md'))).toBe(true);
     expect(readFileSync(chezmoi.addLog, 'utf8')).toContain(join(home, '.claude-deepseek', 'env.vars'));
-    expect(run.stdout).toContain('claude mcp add -s user deepseek-delegate -- ');
+    expect(readFileSync(claude.addLog, 'utf8')).toBe(
+      `-s user deepseek-delegate -- ${join(ROOT, 'node_modules/.bin/tsx')} ${join(ROOT, 'src/server.ts')}\n`,
+    );
+  });
+
+  it('is idempotent: a second run registers nothing twice and still exits 0', () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    mkdirSync(home);
+    fakeChezmoi(root);
+    const claude = fakeClaude(root);
+    expect(runSetup(home, join(root, 'bin')).status).toBe(0);
+    const second = runSetup(home, join(root, 'bin'));
+    expect(second.status).toBe(0);
+    expect(second.stdout).toContain('deepseek-delegate is already registered');
+    expect(readFileSync(claude.addLog, 'utf8').trim().split('\n')).toHaveLength(1);
+  });
+
+  it('leaves a registration with another command alone and says how to replace it', () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    mkdirSync(home);
+    fakeChezmoi(root);
+    const claude = fakeClaude(root, 'Command: /old/tsx\n  Args: /old/server.ts\n');
+    const run = runSetup(home, join(root, 'bin'));
+    expect(run.stdout).toContain('claude mcp remove -s user deepseek-delegate');
+    expect(existsSync(claude.addLog)).toBe(false);
   });
 
   it('fails when ~/.claude/settings.json holds an ANTHROPIC_ variable', () => {
@@ -171,6 +219,7 @@ describe('npm run setup', () => {
     mkdirSync(join(home, '.claude'), { recursive: true });
     writeFileSync(join(home, '.claude', 'settings.json'), JSON.stringify({ env: { ANTHROPIC_MODEL: 'deepseek-v4-pro' } }));
     fakeChezmoi(root);
+    fakeClaude(root);
     const run = runSetup(home, join(root, 'bin'));
     expect(run.status).toBe(1);
     expect(run.stderr).toContain('ANTHROPIC_MODEL');
