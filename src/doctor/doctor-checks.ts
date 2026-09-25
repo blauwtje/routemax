@@ -85,7 +85,7 @@ async function checkBudget(deps: DoctorDeps): Promise<DoctorCheck> {
   const spentUsd = await readSpentUsd(decisionLogPath(deps.homeDir));
   const spent = `$${spentUsd.toFixed(2)} of $${totalUsd.toFixed(2)} spent`;
   if (spentUsd + perCallUsd <= totalUsd) return pass('budget', `${spent}.`);
-  return fix('budget', `${spent}; the next call could pass the cap. Raise budget.totalUsd in config/routing.json.`);
+  return fix('budget', `${spent}; the next call could pass the cap. Raise budget.totalUsd in ~/.config/routemax/config.json.`);
 }
 
 async function checkMaxSettings(homeDir: string): Promise<DoctorCheck> {

@@ -105,7 +105,7 @@ async function workerEnvironment(deps: DelegateDeps, repairProxy: RepairProxy | 
 async function budgetRefusal(logPath: string, budget: DelegateConfig['budget']): Promise<string | null> {
   const spentUsd = await readSpentUsd(logPath);
   if (spentUsd + budget.perCallUsd <= budget.totalUsd) return null;
-  return `Budget cap reached: $${spentUsd.toFixed(2)} of $${budget.totalUsd.toFixed(2)} spent, and one call may cost up to $${budget.perCallUsd.toFixed(2)}. Raise budget.totalUsd in config/routing.json to continue.`;
+  return `Budget cap reached: $${spentUsd.toFixed(2)} of $${budget.totalUsd.toFixed(2)} spent, and one call may cost up to $${budget.perCallUsd.toFixed(2)}. Raise budget.totalUsd in ~/.config/routemax/config.json to continue.`;
 }
 
 async function refuse(logPath: string, base: DecisionBase, message: string, startedAt: number): Promise<DelegateResult> {
