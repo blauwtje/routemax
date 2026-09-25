@@ -1,7 +1,7 @@
 {
   "tiers": {
-    "flash-low": { "model": "deepseek-v4-flash", "effort": "low" },
-    "flash-high": { "model": "deepseek-v4-flash", "effort": "high" },
+    "flash-low": { "model": "deepseek-flash", "effort": "low" },
+    "flash-high": { "model": "deepseek-flash", "effort": "high" },
     "pro-high": { "model": "deepseek-v4-pro", "effort": "high" }
   },
   "rules": [
@@ -39,7 +39,7 @@
   },
   "budget": { "totalUsd": 10, "perCallUsd": 0.25 },
   "prices": {
-    "deepseek-v4-flash": { "inputUsd": 0.3, "cacheHitUsd": 0.006, "outputUsd": 1.2 },
+    "deepseek-flash": { "inputUsd": 0.3, "cacheHitUsd": 0.006, "outputUsd": 1.2 },
     "deepseek-v4-pro": { "inputUsd": 1.32, "cacheHitUsd": 0.044, "outputUsd": 3.96 }
   },
   "workerTimeoutMs": 600000,

@@ -49,7 +49,7 @@ describe('createDeepseekHome', () => {
     const envVars = readFileSync(join(home, '.claude-deepseek', 'env.vars'), 'utf8');
     expect(envVars).toContain('ANTHROPIC_BASE_URL=http://127.0.0.1:8787\n');
     expect(envVars).toContain('ANTHROPIC_MODEL=deepseek-v4-pro\n');
-    expect(envVars).toContain('ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash\n');
+    expect(envVars).toContain('ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-flash\n');
     expect(envVars).toContain('CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-pro\n');
     expect(envVars).toContain(`CLAUDE_CONFIG_DIR=${join(home, '.claude-deepseek')}\n`);
     expect(envVars).not.toMatch(/KEY|TOKEN/);

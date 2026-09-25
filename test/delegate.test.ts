@@ -77,15 +77,15 @@ describe('delegate', () => {
       summary: 'Did the thing.',
       changedFiles: [join(realpathSync(cwd), 'a.txt')],
       tier: 'flash-high',
-      model: 'deepseek-v4-flash',
+      model: 'deepseek-flash',
       effort: 'high',
     });
     expect(result.status === 'done' && result.costUsd).toBeGreaterThan(0);
     const record = JSON.parse(readFileSync(recordPath, 'utf8'));
     expect(record).toMatchObject({
       depth: '1',
-      model: 'deepseek-v4-flash',
-      subagentModel: 'deepseek-v4-flash',
+      model: 'deepseek-flash',
+      subagentModel: 'deepseek-flash',
       effort: 'high',
       hasAuthToken: true,
       hasApiKey: false,

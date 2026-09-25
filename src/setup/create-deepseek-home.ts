@@ -6,7 +6,7 @@ function envVarsContent(homeDir: string): string {
     '# Read by deepseek() in ~/.zshrc, the repair-proxy regression check and the deepseek-delegate worker. Holds no key.',
     'ANTHROPIC_BASE_URL=http://127.0.0.1:8787',
     'ANTHROPIC_MODEL=deepseek-v4-pro',
-    'ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash',
+    'ANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-flash',
     'CLAUDE_CODE_SUBAGENT_MODEL=deepseek-v4-pro',
     `CLAUDE_CONFIG_DIR=${deepseekHomeDir(homeDir)}`,
     '',

@@ -23,6 +23,11 @@ describe('loadConfig', () => {
     expect(config.proxy.telemetryPath.startsWith('~')).toBe(false);
   });
 
+  it('names the current DeepSeek model ids, not the retired deepseek-v4-flash', () => {
+    const models = Object.values(loadConfig(DEFAULT_CONFIG_PATH).tiers).map((tier) => tier.model);
+    expect(new Set(models)).toEqual(new Set(['deepseek-flash', 'deepseek-v4-pro']));
+  });
+
   it('rejects a rule with an unknown tier', () => {
     const config = shippedJson();
     config.rules[0].tier = 'gpt';
