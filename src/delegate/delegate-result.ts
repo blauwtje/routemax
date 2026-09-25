@@ -29,8 +29,18 @@ interface WorkerReport {
   costUsd: number;
 }
 
+export interface ClaudeHandoff {
+  status: 'use_claude';
+  tier: 'claude';
+  agent: string;
+  model: string;
+  effort: Effort;
+  next: string;
+  reason?: 'disabled';
+}
+
 export type DelegateResult =
   | ({ status: 'done' } & WorkerReport)
   | ({ status: 'escalate'; reason: EscalationReason } & WorkerReport)
-  | { status: 'use_claude'; tier: 'claude'; agent: string; model: string; effort: Effort; next: string }
+  | ClaudeHandoff
   | { status: 'refused'; message: string };

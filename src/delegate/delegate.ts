@@ -5,11 +5,11 @@ import type { DelegateConfig, Effort, Provider } from '../config/config-schema';
 import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from '../decision-log/decision-log';
 import { countProxyRetries } from '../proxy/count-proxy-retries';
 import { proxyUrl, type ProxyStart } from '../proxy/ensure-proxy';
-import { planRoute, type WorkerRoutePlan } from '../routing/plan-route';
+import { claudeAgentFor, planRoute, type WorkerRoutePlan } from '../routing/plan-route';
 import { runTestCommand, type TestOutcome } from '../worker/run-test-command';
 import { runWorker, workerArgs, type WorkerOutcome } from '../worker/run-worker';
 import { buildWorkerEnv, parseEnvVars } from '../worker/worker-env';
-import type { DelegateRequest, DelegateResult, EscalationReason } from './delegate-result';
+import type { ClaudeHandoff, DelegateRequest, DelegateResult, EscalationReason } from './delegate-result';
 
 export interface DelegateDeps {
   config: DelegateConfig;
@@ -40,14 +40,19 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
     provider: plan.tier === 'claude' ? null : plan.provider,
   };
   if (plan.tier === 'claude') {
-    const agent = deps.config.claude.agents[plan.agent];
-    await appendDecision(logPath, { ...base, ...NO_RUN, model: agent.model, effort: agent.effort, status: 'use_claude', reason: null, durationMs: Date.now() - startedAt });
-    const next = `Do this task yourself through the Agent tool with subagent_type "${plan.agent}" (${agent.model}, effort ${agent.effort}), passing the full task.`;
-    return { status: 'use_claude', tier: 'claude', agent: plan.agent, model: agent.model, effort: agent.effort, next };
+    const handoff = claudeHandoff(deps.config, plan.agent);
+    await appendDecision(logPath, { ...base, ...NO_RUN, model: handoff.model, effort: handoff.effort, status: 'use_claude', reason: null, durationMs: Date.now() - startedAt });
+    return handoff;
   }
   const refusal = await budgetRefusal(logPath, deps.config.budget);
   if (refusal) return refuse(logPath, base, refusal, startedAt);
   return runDeepseekTask(request, plan, base, deps, startedAt);
+}
+
+function claudeHandoff(config: DelegateConfig, agentName: string): ClaudeHandoff {
+  const agent = config.claude.agents[agentName];
+  const next = `Do this task yourself through the Agent tool with subagent_type "${agentName}" (${agent.model}, effort ${agent.effort}), passing the full task.`;
+  return { status: 'use_claude', tier: 'claude', agent: agentName, model: agent.model, effort: agent.effort, next };
 }
 
 async function runDeepseekTask(request: DelegateRequest, plan: WorkerRoutePlan, base: DecisionBase, deps: DelegateDeps, startedAt: number): Promise<DelegateResult> {

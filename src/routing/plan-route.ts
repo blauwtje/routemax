@@ -22,9 +22,13 @@ export interface WorkerRoutePlan {
 
 export type RoutePlan = ClaudeRoutePlan | WorkerRoutePlan;
 
+export function claudeAgentFor(config: DelegateConfig, taskType: string): string {
+  return config.claude.taskTypes[taskType] ?? config.claude.defaultAgent;
+}
+
 export function planRoute(config: DelegateConfig, request: PlanRequest): RoutePlan {
   const { tier, raisedBy } = routeTask(config.rules, request);
-  if (tier === 'claude') return { tier, raisedBy, agent: config.claude.taskTypes[request.taskType] ?? config.claude.defaultAgent };
+  if (tier === 'claude') return { tier, raisedBy, agent: claudeAgentFor(config, request.taskType) };
   const workerTier = config.tiers[tier];
   const effort = resolveEffort(config.effortMap, workerTier.effort, request.claudeEffort);
   return { tier, raisedBy, provider: workerTier.provider, model: workerTier.model, effort: fitEffort(effort, config.providers[workerTier.provider].efforts) };
