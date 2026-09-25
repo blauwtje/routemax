@@ -5,3 +5,9 @@ export function resolveEffort(effortMap: DelegateConfig['effortMap'], tierEffort
   const mapped = effortMap[claudeEffort];
   return EFFORT_ORDER.indexOf(mapped) > EFFORT_ORDER.indexOf(tierEffort) ? mapped : tierEffort;
 }
+
+export function fitEffort(effort: Effort, accepted: Effort[]): Effort {
+  const rank = (value: Effort) => EFFORT_ORDER.indexOf(value);
+  const ascending = [...accepted].sort((left, right) => rank(left) - rank(right));
+  return ascending.filter((value) => rank(value) <= rank(effort)).at(-1) ?? ascending[0];
+}
