@@ -10,5 +10,12 @@ export function testUiDeps(homeDir: string): UiDeps {
     const seed = migrateConfig(JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8')));
     writeFileSync(configPath, `${JSON.stringify(seed, null, 2)}\n`);
   }
-  return { homeDir, configPath, chezmoiBin: join(homeDir, 'no-chezmoi') };
+  return {
+    homeDir,
+    configPath,
+    chezmoiBin: join(homeDir, 'no-chezmoi'),
+    doctorDeps: () => {
+      throw new Error('This test gives no doctor deps; pass doctorDeps to apiRoutes.');
+    },
+  };
 }

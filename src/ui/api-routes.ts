@@ -5,6 +5,7 @@ import { loadConfig } from '../config/delegate-config';
 import { previousConfigPath } from '../config/routemax-paths';
 import { syncChezmoi } from '../config/sync-chezmoi';
 import { decisionLogPath } from '../decision-log/decision-log';
+import { runDoctorChecks, type DoctorDeps } from '../doctor/doctor-checks';
 import { isRouterEnabled, setRouterEnabled } from '../router-switch/router-switch';
 import { decisionStats, readDecisions } from './decision-stats';
 import type { ApiResponse, ApiRoute } from './ui-server';
@@ -13,6 +14,7 @@ export interface UiDeps {
   homeDir: string;
   configPath: string;
   chezmoiBin: string;
+  doctorDeps: () => DoctorDeps;
 }
 
 const switchBodySchema = z.object({ enabled: z.boolean() });
@@ -81,6 +83,10 @@ function decisionRoutes(deps: UiDeps): ApiRoute[] {
   ];
 }
 
+function doctorRoutes(deps: UiDeps): ApiRoute[] {
+  return [{ method: 'GET', pattern: /^\/api\/doctor$/, handle: async () => ok({ checks: await runDoctorChecks(deps.doctorDeps()) }) }];
+}
+
 export function apiRoutes(deps: UiDeps): ApiRoute[] {
-  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps)];
+  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps), ...doctorRoutes(deps)];
 }
