@@ -1,0 +1,56 @@
+{
+  "tiers": {
+    "flash-low": { "model": "deepseek-v4-flash", "effort": "low" },
+    "flash-high": { "model": "deepseek-v4-flash", "effort": "high" },
+    "pro-high": { "model": "deepseek-v4-pro", "effort": "high" }
+  },
+  "rules": [
+    { "id": "search-read-summarize", "taskTypes": ["search", "read", "summarize"], "tier": "flash-low" },
+    { "id": "boilerplate-tests-edits", "taskTypes": ["boilerplate", "tests", "simple-edit"], "tier": "flash-high" },
+    { "id": "build-with-spec", "taskTypes": ["build"], "tier": "pro-high" },
+    {
+      "id": "claude-only",
+      "taskTypes": ["architecture", "debugging", "security", "auth", "migration", "concurrency"],
+      "keywords": [
+        "architecture", "security", "vulnerability", "vulnerabilities", "auth", "authentication", "authorization",
+        "oauth", "credential", "credentials", "secret", "secrets", "migration", "migrations", "migrate",
+        "concurrency", "race condition", "deadlock", "irreversible"
+      ],
+      "flags": ["irreversible", "unknown-cause"],
+      "tier": "claude"
+    }
+  ],
+  "effortMap": { "low": "low", "medium": "high", "high": "high", "xhigh": "max", "max": "max" },
+  "claude": {
+    "defaultAgent": "claude-opus-high",
+    "agents": {
+      "claude-opus-xhigh": { "model": "opus", "effort": "xhigh" },
+      "claude-opus-high": { "model": "opus", "effort": "high" },
+      "claude-sonnet-high": { "model": "sonnet", "effort": "high" }
+    },
+    "taskTypes": {
+      "architecture": "claude-opus-xhigh",
+      "security": "claude-opus-xhigh",
+      "auth": "claude-opus-xhigh",
+      "migration": "claude-opus-xhigh",
+      "concurrency": "claude-opus-xhigh",
+      "debugging": "claude-opus-high"
+    }
+  },
+  "budget": { "totalUsd": 10, "perCallUsd": 0.25 },
+  "prices": {
+    "deepseek-v4-flash": { "inputUsd": 0.3, "cacheHitUsd": 0.006, "outputUsd": 1.2 },
+    "deepseek-v4-pro": { "inputUsd": 1.32, "cacheHitUsd": 0.044, "outputUsd": 3.96 }
+  },
+  "workerTimeoutMs": 600000,
+  "testTimeoutMs": 300000,
+  "retryThreshold": null,
+  "projects": {},
+  "exploreRedirect": false,
+  "claudeBin": "claude",
+  "proxy": {
+    "dir": "/Users/thomash/Documents/Code/personal/tools/deepseek-repair-proxy",
+    "logPath": "/tmp/deepseek-proxy.log",
+    "telemetryPath": "~/.local/state/deepseek-proxy/telemetry.jsonl"
+  }
+}
