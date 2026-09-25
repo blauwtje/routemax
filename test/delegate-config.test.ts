@@ -1,8 +1,9 @@
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG_PATH, loadConfig } from '../src/config/delegate-config';
+import { DEFAULT_CONFIG_PATH, ensureLiveConfig, loadConfig } from '../src/config/delegate-config';
+import { liveConfigPath, v1BackupPath } from '../src/config/routemax-paths';
 
 const shippedJson = () => JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8'));
 
@@ -50,5 +51,48 @@ describe('loadConfig', () => {
     const config = shippedJson();
     delete config.prices['deepseek-v4-pro'];
     expect(() => loadConfig(writeConfig(config))).toThrow(/deepseek-v4-pro/);
+  });
+});
+
+describe('ensureLiveConfig', () => {
+  const seedText = readFileSync(DEFAULT_CONFIG_PATH, 'utf8');
+
+  function tempHome() {
+    const home = mkdtempSync(join(tmpdir(), 'routemax-home-'));
+    const seedPath = join(home, 'routing.json');
+    writeFileSync(seedPath, seedText);
+    return { home, seedPath };
+  }
+
+  it('writes the live config once from the seed and keeps the version 1 original', () => {
+    const { home, seedPath } = tempHome();
+    const livePath = ensureLiveConfig(home, seedPath);
+    expect(livePath).toBe(liveConfigPath(home));
+    expect(JSON.parse(readFileSync(livePath, 'utf8')).version).toBe(2);
+    expect(loadConfig(livePath).budget.totalUsd).toBe(10);
+    expect(readFileSync(v1BackupPath(home), 'utf8')).toBe(seedText);
+
+    const liveText = readFileSync(livePath, 'utf8');
+    writeFileSync(seedPath, seedText.replace('"totalUsd": 10', '"totalUsd": 20'));
+    expect(ensureLiveConfig(home, seedPath)).toBe(livePath);
+    expect(readFileSync(livePath, 'utf8')).toBe(liveText);
+    expect(readFileSync(v1BackupPath(home), 'utf8')).toBe(seedText);
+  });
+
+  it('never overwrites an existing version 1 backup', () => {
+    const { home, seedPath } = tempHome();
+    ensureLiveConfig(home, seedPath);
+    rmSync(liveConfigPath(home));
+    writeFileSync(seedPath, seedText.replace('"totalUsd": 10', '"totalUsd": 20'));
+    ensureLiveConfig(home, seedPath);
+    expect(loadConfig(liveConfigPath(home)).budget.totalUsd).toBe(20);
+    expect(readFileSync(v1BackupPath(home), 'utf8')).toBe(seedText);
+  });
+
+  it('writes nothing when the seed is invalid', () => {
+    const { home, seedPath } = tempHome();
+    writeFileSync(seedPath, seedText.replace('"totalUsd": 10', '"totalUsd": -1'));
+    expect(() => ensureLiveConfig(home, seedPath)).toThrow(/budget\.totalUsd/);
+    expect(() => readFileSync(liveConfigPath(home))).toThrow(/ENOENT/);
   });
 });
