@@ -11,6 +11,7 @@ const record = (costUsd: number): DecisionRecord => ({
   requestedTier: 'flash-low',
   finalTier: 'flash-low',
   raisedBy: null,
+  provider: 'deepseek',
   model: 'deepseek-v4-flash',
   effort: 'low',
   inputTokens: 10,

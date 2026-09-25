@@ -1,12 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import { EMPTY_USAGE } from '../budget/usage-cost';
 import { envVarsPath, mcpConfigPath } from '../config/deepseek-home';
-import type { DelegateConfig, Effort, Provider, WorkerTier } from '../config/config-schema';
+import type { DelegateConfig, Effort, Provider } from '../config/config-schema';
 import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from '../decision-log/decision-log';
 import { countProxyRetries } from '../proxy/count-proxy-retries';
 import { proxyUrl, type ProxyStart } from '../proxy/ensure-proxy';
-import { resolveEffort } from '../routing/resolve-effort';
-import { routeTask } from '../routing/route-task';
+import { planRoute, type WorkerRoutePlan } from '../routing/plan-route';
 import { runTestCommand, type TestOutcome } from '../worker/run-test-command';
 import { runWorker, workerArgs, type WorkerOutcome } from '../worker/run-worker';
 import { buildWorkerEnv, parseEnvVars } from '../worker/worker-env';
@@ -29,34 +28,32 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
     return { status: 'refused', message: 'delegate is not available inside a delegate worker.' };
   }
   const startedAt = Date.now();
-  const route = routeTask(deps.config.rules, request);
+  const plan = planRoute(deps.config, request);
   const logPath = decisionLogPath(deps.homeDir);
   const base: DecisionBase = {
     ts: new Date(startedAt).toISOString(),
     cwd: deps.cwd,
     taskType: request.taskType,
     requestedTier: request.requestedTier,
-    finalTier: route.tier,
-    raisedBy: route.raisedBy,
+    finalTier: plan.tier,
+    raisedBy: plan.raisedBy,
+    provider: plan.tier === 'claude' ? null : plan.provider,
   };
-  if (route.tier === 'claude') {
-    const agentName = deps.config.claude.taskTypes[request.taskType] ?? deps.config.claude.defaultAgent;
-    const agent = deps.config.claude.agents[agentName];
+  if (plan.tier === 'claude') {
+    const agent = deps.config.claude.agents[plan.agent];
     await appendDecision(logPath, { ...base, ...NO_RUN, model: agent.model, effort: agent.effort, status: 'use_claude', reason: null, durationMs: Date.now() - startedAt });
-    const next = `Do this task yourself through the Agent tool with subagent_type "${agentName}" (${agent.model}, effort ${agent.effort}), passing the full task.`;
-    return { status: 'use_claude', tier: 'claude', agent: agentName, model: agent.model, effort: agent.effort, next };
+    const next = `Do this task yourself through the Agent tool with subagent_type "${plan.agent}" (${agent.model}, effort ${agent.effort}), passing the full task.`;
+    return { status: 'use_claude', tier: 'claude', agent: plan.agent, model: agent.model, effort: agent.effort, next };
   }
   const refusal = await budgetRefusal(logPath, deps.config.budget);
   if (refusal) return refuse(logPath, base, refusal, startedAt);
-  return runDeepseekTask(request, route.tier, base, deps, startedAt);
+  return runDeepseekTask(request, plan, base, deps, startedAt);
 }
 
-async function runDeepseekTask(request: DelegateRequest, tier: WorkerTier, base: DecisionBase, deps: DelegateDeps, startedAt: number): Promise<DelegateResult> {
+async function runDeepseekTask(request: DelegateRequest, plan: WorkerRoutePlan, base: DecisionBase, deps: DelegateDeps, startedAt: number): Promise<DelegateResult> {
   const { config } = deps;
-  const tierConfig = config.tiers[tier];
-  const { model } = tierConfig;
-  const provider = config.providers[tierConfig.provider];
-  const effort = resolveEffort(config.effortMap, tierConfig.effort, request.claudeEffort);
+  const { tier, model, effort } = plan;
+  const provider = config.providers[plan.provider];
   const logPath = decisionLogPath(deps.homeDir);
   let env: Record<string, string>;
   try {

@@ -11,6 +11,7 @@ export interface DecisionRecord extends TokenUsage {
   requestedTier: Tier;
   finalTier: Tier;
   raisedBy: string | null;
+  provider: string | null;
   model: string | null;
   effort: Effort | null;
   costUsd: number;
@@ -20,7 +21,7 @@ export interface DecisionRecord extends TokenUsage {
   retries: number;
 }
 
-export type DecisionBase = Pick<DecisionRecord, 'ts' | 'cwd' | 'taskType' | 'requestedTier' | 'finalTier' | 'raisedBy'>;
+export type DecisionBase = Pick<DecisionRecord, 'ts' | 'cwd' | 'taskType' | 'requestedTier' | 'finalTier' | 'raisedBy' | 'provider'>;
 
 export function decisionLogPath(homeDir: string): string {
   return join(homeDir, '.local', 'state', 'deepseek-delegate', 'decisions.jsonl');

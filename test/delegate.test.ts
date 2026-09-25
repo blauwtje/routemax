@@ -97,12 +97,19 @@ describe('delegate', () => {
       cwd: realpathSync(cwd),
     });
     expect(record.args).not.toContain('--dangerously-skip-permissions');
-    expect(logLines(home)[0]).toMatchObject({ taskType: 'boilerplate', requestedTier: 'flash-low', finalTier: 'flash-high', raisedBy: 'boilerplate-tests-edits', status: 'done', reason: null, retries: 0 });
+    expect(logLines(home)[0]).toMatchObject({ taskType: 'boilerplate', requestedTier: 'flash-low', finalTier: 'flash-high', raisedBy: 'boilerplate-tests-edits', provider: 'deepseek', status: 'done', reason: null, retries: 0 });
   });
 
   it('raises the worker effort for a higher Claude effort', async () => {
     const { deps } = harness();
     expect(await delegate(request({ taskType: 'search', claudeEffort: 'xhigh' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'max' });
+  });
+
+  it('lowers the worker effort to one the provider accepts', async () => {
+    const { deps } = harness();
+    const { deepseek } = deps.config.providers;
+    deps.config = { ...deps.config, providers: { ...deps.config.providers, deepseek: { ...deepseek, efforts: ['low', 'high'] } } };
+    expect(await delegate(request({ taskType: 'search', claudeEffort: 'xhigh' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'high' });
   });
 
   it('returns use_claude for a claude-tier task without starting a worker', async () => {
@@ -117,7 +124,7 @@ describe('delegate', () => {
       next: 'Do this task yourself through the Agent tool with subagent_type "claude-opus-xhigh" (opus, effort xhigh), passing the full task.',
     });
     expect(existsSync(recordPath)).toBe(false);
-    expect(logLines(home)[0]).toMatchObject({ status: 'use_claude', costUsd: 0 });
+    expect(logLines(home)[0]).toMatchObject({ status: 'use_claude', costUsd: 0, provider: null });
   });
 
   it('refuses inside a worker (recursion guard)', async () => {
