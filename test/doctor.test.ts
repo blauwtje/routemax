@@ -8,7 +8,7 @@ import { decisionLogPath } from '../src/decision-log/decision-log';
 import { runDoctorChecks, type DoctorDeps } from '../src/doctor/doctor-checks';
 import { createDeepseekHome } from '../src/setup/create-deepseek-home';
 import { serverRegistration } from '../src/setup/register-server';
-import { fakeClaude } from './helpers/fake-claude';
+import { fakeClaude, type McpGetEntry } from './helpers/fake-claude';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SECRET = 'sk-doctor-DO-NOT-PRINT';
@@ -18,12 +18,17 @@ function doctorDeps(root: string, overrides: Partial<DoctorDeps> = {}): DoctorDe
     homeDir: join(root, 'home'),
     repoRoot: ROOT,
     config: loadConfig(DEFAULT_CONFIG_PATH),
-    registration: { ...serverRegistration(ROOT), claudeBin: join(root, 'bin', 'claude') },
+    registration: serverRegistration(ROOT, join(root, 'bin', 'claude')),
     readApiKey: async () => SECRET,
     ensureProxy: async () => 'running',
     ...overrides,
   };
 }
+
+const currentEntry = (overrides: Partial<McpGetEntry> = {}): McpGetEntry => {
+  const { command, args } = serverRegistration(ROOT, 'claude');
+  return { scope: 'user', connected: true, command, args, ...overrides };
+};
 
 describe('runDoctorChecks', () => {
   it('reports OK on every line after a complete setup', async () => {
@@ -33,8 +38,7 @@ describe('runDoctorChecks', () => {
     mkdirSync(join(home, '.claude', 'agents'), { recursive: true });
     for (const name of readdirSync(join(ROOT, 'agents'))) copyFileSync(join(ROOT, 'agents', name), join(home, '.claude', 'agents', name));
     writeFileSync(join(home, '.claude', 'settings.json'), JSON.stringify({ env: { OTHER: '1' } }));
-    const registration = serverRegistration(ROOT);
-    fakeClaude(root, `Command: ${registration.command}\n  Args: ${registration.args.join(' ')}\n`);
+    fakeClaude(root, currentEntry());
 
     const checks = await runDoctorChecks(doctorDeps(root));
 
@@ -73,6 +77,17 @@ describe('runDoctorChecks', () => {
     expect(byName['Claude agents'].message).toContain('claude-opus-high.md');
     expect(byName.budget.message).toContain('$9.90 of $10.00');
     expect(byName['Max settings'].message).toContain('ANTHROPIC_BASE_URL');
+  });
+
+  it.each([
+    ['one project only', currentEntry({ scope: 'local' }), 'claude mcp remove deepseek-delegate -s local'],
+    ['a server that does not connect', currentEntry({ connected: false }), 'does not connect'],
+    ['another command', currentEntry({ command: '/old/tsx' }), 'claude mcp remove deepseek-delegate -s user'],
+  ])('reports a registration for %s', async (_case, entry, advice) => {
+    const root = mkdtempSync(join(tmpdir(), 'routemax-doctor-'));
+    fakeClaude(root, entry);
+    const checks = await runDoctorChecks(doctorDeps(root));
+    expect(checks.find((check) => check.name === 'MCP server')).toMatchObject({ ok: false, message: expect.stringContaining(advice) });
   });
 
   it('reports a proxy that does not start', async () => {

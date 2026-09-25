@@ -5,7 +5,7 @@ import { deepseekHomeDir, envVarsPath } from '../config/deepseek-home';
 import type { DelegateConfig } from '../config/delegate-config';
 import { decisionLogPath, readSpentUsd } from '../decision-log/decision-log';
 import { findAnthropicVariables } from '../setup/find-anthropic-variables';
-import { registrationState, type ServerRegistration } from '../setup/register-server';
+import { checkRegistration, registrationProblem, type ServerRegistration } from '../setup/register-server';
 import { parseEnvVars } from '../worker/worker-env';
 
 export interface DoctorCheck {
@@ -60,14 +60,13 @@ async function checkProxy(deps: DoctorDeps, baseUrl: string | null): Promise<Doc
   }
 }
 
-async function checkRegistration(registration: ServerRegistration): Promise<DoctorCheck> {
+async function checkServer(registration: ServerRegistration): Promise<DoctorCheck> {
   try {
-    const state = await registrationState(registration);
-    if (state === 'current') return pass('MCP server', 'deepseek-delegate is registered for every project.');
-    if (state === 'other') return fix('MCP server', 'deepseek-delegate runs another command. Run claude mcp remove -s user deepseek-delegate, then npm run setup.');
-    return fix('MCP server', `deepseek-delegate is not registered. ${RUN_SETUP}`);
+    const problem = registrationProblem(await checkRegistration(registration));
+    if (!problem) return pass('MCP server', 'deepseek-delegate is registered for every project and connects.');
+    return fix('MCP server', problem);
   } catch {
-    return fix('MCP server', 'claude is not on PATH, so the registration cannot be checked.');
+    return fix('MCP server', `${registration.claudeBin} is not on PATH, so the registration cannot be checked.`);
   }
 }
 
@@ -98,7 +97,7 @@ export async function runDoctorChecks(deps: DoctorDeps): Promise<DoctorCheck[]> 
     checkEnvVars(baseUrl),
     await checkApiKey(deps),
     await checkProxy(deps, baseUrl),
-    await checkRegistration(deps.registration),
+    await checkServer(deps.registration),
     await checkAgents(deps),
     await checkBudget(deps),
     await checkMaxSettings(deps.homeDir),

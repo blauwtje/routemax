@@ -4,10 +4,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_CONFIG_PATH } from '../src/config/delegate-config';
 import { addDeepseekHomeToChezmoi } from '../src/setup/add-deepseek-home-to-chezmoi';
 import { createDeepseekHome } from '../src/setup/create-deepseek-home';
 import { findAnthropicVariables } from '../src/setup/find-anthropic-variables';
 import { installAgents } from '../src/setup/install-agents';
+import { serverRegistration } from '../src/setup/register-server';
 import { fakeClaude } from './helpers/fake-claude';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -148,9 +150,10 @@ describe('findAnthropicVariables', () => {
 });
 
 describe('npm run setup', () => {
-  const runSetup = (home: string, pathPrefix: string) =>
+  const { command, args } = serverRegistration(ROOT, 'claude');
+  const runSetup = (home: string, pathPrefix: string, env: Record<string, string> = {}) =>
     spawnSync(join(ROOT, 'node_modules/.bin/tsx'), [join(ROOT, 'src/setup/run-setup.ts')], {
-      env: { ...process.env, HOME: home, PATH: `${pathPrefix}:${process.env.PATH}` },
+      env: { ...process.env, HOME: home, PATH: `${pathPrefix}:${process.env.PATH}`, ...env },
       encoding: 'utf8',
     });
 
@@ -183,15 +186,43 @@ describe('npm run setup', () => {
     expect(readFileSync(claude.addLog, 'utf8').trim().split('\n')).toHaveLength(1);
   });
 
-  it('leaves a registration with another command alone and says how to replace it', () => {
+  it.each([
+    ['another command', { scope: 'user', command: '/old/tsx', args: ['/old/server.ts'] }, 'claude mcp remove deepseek-delegate -s user'],
+    ['one project only', { scope: 'local', command, args }, 'claude mcp remove deepseek-delegate -s local'],
+  ] as const)('leaves a registration for %s alone, says how to replace it and exits 1', (_case, entry, advice) => {
     const root = tempRoot();
     const home = join(root, 'home');
     mkdirSync(home);
     fakeChezmoi(root);
-    const claude = fakeClaude(root, 'Command: /old/tsx\n  Args: /old/server.ts\n');
+    const claude = fakeClaude(root, { connected: true, ...entry, args: [...entry.args] });
     const run = runSetup(home, join(root, 'bin'));
-    expect(run.stdout).toContain('claude mcp remove -s user deepseek-delegate');
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain(advice);
     expect(existsSync(claude.addLog)).toBe(false);
+  });
+
+  it('exits 1 when the server it registered does not connect', () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    mkdirSync(home);
+    fakeChezmoi(root);
+    fakeClaude(root, null, false);
+    const run = runSetup(home, join(root, 'bin'));
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain('deepseek-delegate is registered but does not connect');
+  });
+
+  it('runs the claude binary that claudeBin in the routing config names', () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    mkdirSync(home);
+    fakeChezmoi(root);
+    const claude = fakeClaude(join(root, 'off-path'));
+    const configPath = join(root, 'routing.json');
+    writeFileSync(configPath, JSON.stringify({ ...JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8')), claudeBin: claude.bin }));
+    const run = runSetup(home, join(root, 'bin'), { DEEPSEEK_DELEGATE_CONFIG: configPath });
+    expect(run.status).toBe(0);
+    expect(readFileSync(claude.addLog, 'utf8')).toContain('-s user deepseek-delegate');
   });
 
   it('fails when ~/.claude/settings.json holds an ANTHROPIC_ variable', () => {

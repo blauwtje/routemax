@@ -13,7 +13,7 @@ const checks = await runDoctorChecks({
   homeDir: homedir(),
   repoRoot,
   config,
-  registration: serverRegistration(repoRoot),
+  registration: serverRegistration(repoRoot, config.claudeBin),
   readApiKey,
   ensureProxy: (healthUrl) => ensureProxy({ dir: config.proxy.dir, logPath: config.proxy.logPath, telemetryPath: config.proxy.telemetryPath, healthUrl }),
 });
