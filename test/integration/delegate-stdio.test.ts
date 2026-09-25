@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
@@ -11,6 +11,7 @@ import { DEFAULT_CONFIG_PATH } from '../../src/config/delegate-config';
 import { migrateConfig } from '../../src/config/migrate-config';
 import { decisionLogPath } from '../../src/decision-log/decision-log';
 import { isProxyHealthy } from '../../src/proxy/ensure-proxy';
+import { routerSwitchPath } from '../../src/router-switch/router-switch';
 import { freePort } from '../helpers/free-port';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
@@ -196,6 +197,40 @@ describe('live config in an open session', () => {
       expect(await callOn(client, security)).toMatchObject({ agent: 'claude-sonnet-high' });
     } finally {
       writeFileSync(configPath, original);
+      await client.close();
+    }
+  }, 30_000);
+});
+
+describe('switch in an open session', () => {
+  const toolNames = async (client: Client) => (await client.listTools()).tools.map((tool) => tool.name);
+
+  it('drops delegate while off, answers a stale call with use_claude, and brings it back when on', async () => {
+    const switchPath = routerSwitchPath(home);
+    mkdirSync(dirname(switchPath), { recursive: true });
+    const summarize = { task: 'Summarize the README.', taskType: 'summarize' };
+    const client = await connect();
+    try {
+      const dropped = nextToolListChange(client);
+      writeFileSync(switchPath, 'off\n');
+      await dropped;
+      expect(await toolNames(client)).not.toContain('delegate');
+      expect(await callOn(client, summarize)).toMatchObject({ status: 'use_claude', agent: 'claude-opus-high', reason: 'disabled' });
+      const startedOff = await connect();
+      try {
+        expect(await toolNames(startedOff)).not.toContain('delegate');
+      } finally {
+        await startedOff.close();
+      }
+      const restored = nextToolListChange(client);
+      writeFileSync(switchPath, 'on\n');
+      await restored;
+      expect(await toolNames(client)).toContain('delegate');
+      const security = await callOn(client, { task: 'Review the session cookie flags.', taskType: 'security' });
+      expect(security.status).toBe('use_claude');
+      expect(security.reason).toBeUndefined();
+    } finally {
+      writeFileSync(switchPath, 'on\n');
       await client.close();
     }
   }, 30_000);

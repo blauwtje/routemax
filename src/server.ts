@@ -1,13 +1,15 @@
 import { homedir } from 'node:os';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { EFFORT_ORDER, TIER_ORDER, type DelegateConfig } from './config/config-schema';
+import { EFFORT_ORDER, TIER_ORDER, formatIssues, type DelegateConfig } from './config/config-schema';
 import { activeConfigPath, loadConfig } from './config/delegate-config';
 import { watchConfig } from './config/watch-config';
 import { delegate } from './delegate/delegate';
 import type { DelegateRequest } from './delegate/delegate-result';
 import { ensureProxy } from './proxy/ensure-proxy';
+import { isRouterEnabled, watchRouterSwitch } from './router-switch/router-switch';
 import { readApiKey } from './worker/read-api-key';
 
 const TOOL_NAME = 'delegate';
@@ -66,6 +68,18 @@ watchConfig(configPath, (next) => {
   if (nextTaskTypes.join('\n') === taskTypes.join('\n')) return;
   taskTypes = nextTaskTypes;
   delegateTool.update({ paramsSchema: delegateInputShape(taskTypes) });
+});
+
+if (!isRouterEnabled(homedir())) delegateTool.disable();
+watchRouterSwitch(homedir(), (enabled) => (enabled ? delegateTool.enable() : delegateTool.disable()));
+
+server.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name !== TOOL_NAME) {
+    return { content: [{ type: 'text' as const, text: `Tool ${request.params.name} not found` }], isError: true };
+  }
+  const parsed = z.object(delegateInputShape(taskTypes)).safeParse(request.params.arguments ?? {});
+  if (!parsed.success) return { content: [{ type: 'text' as const, text: formatIssues(parsed.error).join('\n') }], isError: true };
+  return runDelegate(parsed.data);
 });
 
 await server.connect(new StdioServerTransport());
