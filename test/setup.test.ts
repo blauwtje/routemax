@@ -8,6 +8,7 @@ import { addDeepseekHomeToChezmoi } from '../src/setup/add-deepseek-home-to-chez
 import { createDeepseekHome } from '../src/setup/create-deepseek-home';
 import { findAnthropicVariables } from '../src/setup/find-anthropic-variables';
 import { installAgents } from '../src/setup/install-agents';
+import { fakeClaude } from './helpers/fake-claude';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const REPO_AGENTS = join(ROOT, 'agents');
@@ -40,26 +41,6 @@ function fakeChezmoi(root: string) {
   return { bin, source, applyLog, addLog };
 }
 
-function fakeClaude(root: string, registered: string | null = null) {
-  const state = join(root, 'mcp-registration');
-  const addLog = join(root, 'mcp-add.log');
-  if (registered) writeFileSync(state, registered);
-  mkdirSync(join(root, 'bin'), { recursive: true });
-  writeFileSync(
-    join(root, 'bin', 'claude'),
-    [
-      '#!/bin/sh',
-      'case "$1 $2" in',
-      `  "mcp get") test -f "${state}" || { echo 'No MCP server named "deepseek-delegate".'; exit 1; }; cat "${state}" ;;`,
-      `  "mcp add") shift 2; echo "$@" >> "${addLog}"; echo "$@" > "${state}" ;;`,
-      '  *) exit 1 ;;',
-      'esac',
-      '',
-    ].join('\n'),
-    { mode: 0o755 },
-  );
-  return { addLog };
-}
 const tempRoot = () => mkdtempSync(join(tmpdir(), 'routemax-setup-'));
 
 describe('createDeepseekHome', () => {

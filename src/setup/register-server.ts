@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
@@ -8,6 +9,10 @@ export interface ServerRegistration {
   claudeBin: string;
   command: string;
   args: string[];
+}
+
+export function serverRegistration(repoRoot: string): ServerRegistration {
+  return { claudeBin: 'claude', command: join(repoRoot, 'node_modules/.bin/tsx'), args: [join(repoRoot, 'src/server.ts')] };
 }
 
 export type RegistrationState = 'missing' | 'current' | 'other';
