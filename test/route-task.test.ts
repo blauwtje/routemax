@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG_PATH, loadConfig, type Tier } from '../src/config/delegate-config';
+import type { Tier } from '../src/config/config-schema';
+import { DEFAULT_CONFIG_PATH, loadConfig } from '../src/config/delegate-config';
 import { routeTask } from '../src/routing/route-task';
 
 const { rules } = loadConfig(DEFAULT_CONFIG_PATH);

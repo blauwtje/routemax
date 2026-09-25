@@ -1,4 +1,4 @@
-import type { ModelPrice } from '../config/delegate-config';
+import type { ModelPrice } from '../config/config-schema';
 
 export interface TokenUsage {
   inputTokens: number;
