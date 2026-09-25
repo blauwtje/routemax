@@ -1,5 +1,5 @@
-import { readFileSync, watchFile } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, readFileSync, watchFile, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { WATCH_INTERVAL_MS } from '../config/watch-config';
 
 export const routerSwitchPath = (homeDir: string) => join(homeDir, '.local', 'state', 'deepseek-delegate', 'enabled');
@@ -11,6 +11,12 @@ export function isRouterEnabled(homeDir: string): boolean {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return true;
     throw error;
   }
+}
+
+export function setRouterEnabled(homeDir: string, enabled: boolean): void {
+  const path = routerSwitchPath(homeDir);
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, enabled ? 'on\n' : 'off\n');
 }
 
 export function watchRouterSwitch(homeDir: string, onChange: (enabled: boolean) => void): void {
