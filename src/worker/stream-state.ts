@@ -1,5 +1,5 @@
 import { addUsage, EMPTY_USAGE, usageCostUsd, type TokenUsage } from '../budget/usage-cost';
-import type { ModelPrice } from '../config/delegate-config';
+import type { ModelPrice } from '../config/config-schema';
 
 interface RawUsage {
   input_tokens?: number;

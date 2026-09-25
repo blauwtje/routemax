@@ -1,7 +1,7 @@
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import type { TokenUsage } from '../budget/usage-cost';
-import type { Effort, Tier } from '../config/delegate-config';
+import type { Effort, Tier } from '../config/config-schema';
 import type { DelegateStatus, EscalationReason } from '../delegate/delegate-result';
 
 export interface DecisionRecord extends TokenUsage {

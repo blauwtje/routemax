@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { deepseekHomeDir, envVarsPath } from '../config/deepseek-home';
-import type { DelegateConfig } from '../config/delegate-config';
+import type { DelegateConfig } from '../config/config-schema';
 import { decisionLogPath, readSpentUsd } from '../decision-log/decision-log';
 import { findAnthropicVariables } from '../setup/find-anthropic-variables';
 import { checkRegistration, registrationProblem, type ServerRegistration } from '../setup/register-server';

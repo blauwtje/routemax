@@ -1,4 +1,4 @@
-import type { Effort } from '../config/delegate-config';
+import type { Effort } from '../config/config-schema';
 
 const NOT_INHERITED = /^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$|CLAUDE_CONFIG_DIR$|DEEPSEEK_DELEGATE_)/;
 
