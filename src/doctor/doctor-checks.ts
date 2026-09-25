@@ -23,6 +23,7 @@ export interface DoctorDeps {
   registration: ServerRegistration;
   readApiKey: (keychainService: string) => Promise<string>;
   ensureProxy: (start: ProxyStart) => Promise<'running' | 'started'>;
+  commandOnPath: (name: string) => Promise<boolean>;
 }
 
 const RUN_SETUP = 'Run npm run setup.';
@@ -75,6 +76,11 @@ function checkRouter(homeDir: string): DoctorCheck {
   }
 }
 
+async function checkRoutemaxCommand(deps: DoctorDeps): Promise<DoctorCheck> {
+  if (await deps.commandOnPath('routemax')) return pass('routemax command', 'routemax is on PATH, so routemax ui works in every terminal.');
+  return fix('routemax command', `routemax is not on PATH. Run npm link in ${deps.repoRoot}.`);
+}
+
 async function checkServer(registration: ServerRegistration): Promise<DoctorCheck> {
   try {
     const problem = registrationProblem(await checkRegistration(registration));
@@ -110,6 +116,7 @@ export async function runDoctorChecks(deps: DoctorDeps): Promise<DoctorCheck[]> 
   const baseUrl = await proxyBaseUrl(deps.homeDir);
   return [
     checkRouter(deps.homeDir),
+    await checkRoutemaxCommand(deps),
     checkEnvVars(baseUrl),
     await checkApiKey(deps),
     await checkProxy(deps, baseUrl),

@@ -5,6 +5,7 @@ import { ensureProxy } from '../proxy/ensure-proxy';
 import { serverRegistration } from '../setup/register-server';
 import { readApiKey } from '../worker/read-api-key';
 import { runDoctorChecks } from './doctor-checks';
+import { commandOnPath } from './command-on-path';
 
 const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
 const config = loadConfig();
@@ -16,6 +17,7 @@ const checks = await runDoctorChecks({
   registration: serverRegistration(repoRoot, config.claudeBin),
   readApiKey,
   ensureProxy,
+  commandOnPath,
 });
 
 for (const check of checks) console.log(`${check.ok ? 'OK ' : 'FIX'}  ${check.name}: ${check.message}`);

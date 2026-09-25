@@ -22,6 +22,7 @@ function doctorDeps(root: string, overrides: Partial<DoctorDeps> = {}): DoctorDe
     registration: serverRegistration(ROOT, join(root, 'bin', 'claude')),
     readApiKey: async () => SECRET,
     ensureProxy: async () => 'running',
+    commandOnPath: async () => true,
     ...overrides,
   };
 }
@@ -44,7 +45,7 @@ describe('runDoctorChecks', () => {
     const checks = await runDoctorChecks(doctorDeps(root));
 
     expect(checks.filter((check) => !check.ok)).toEqual([]);
-    expect(checks.map((check) => check.name)).toEqual(['router', 'env.vars', 'DeepSeek key', 'repair-proxy', 'MCP server', 'Claude agents', 'budget', 'Max settings']);
+    expect(checks.map((check) => check.name)).toEqual(['router', 'routemax command', 'env.vars', 'DeepSeek key', 'repair-proxy', 'MCP server', 'Claude agents', 'budget', 'Max settings']);
     expect(JSON.stringify(checks)).not.toContain(SECRET);
   });
 
@@ -61,6 +62,7 @@ describe('runDoctorChecks', () => {
     const checks = await runDoctorChecks(
       doctorDeps(root, {
         readApiKey: async () => Promise.reject(new Error('no key')),
+        commandOnPath: async () => false,
         ensureProxy: async () => {
           proxyStarted = true;
           return 'running';
@@ -69,6 +71,7 @@ describe('runDoctorChecks', () => {
     );
 
     const byName = Object.fromEntries(checks.map((check) => [check.name, check]));
+    expect(byName['routemax command'].message).toContain('npm link');
     expect(checks.filter((check) => check.name !== 'router').every((check) => !check.ok)).toBe(true);
     expect(byName['env.vars'].message).toContain('npm run setup');
     expect(byName['DeepSeek key'].message).toContain('security add-generic-password -a "$USER" -s deepseek_api_key -w');
