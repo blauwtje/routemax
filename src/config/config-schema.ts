@@ -62,3 +62,62 @@ export const v1ConfigSchema = sharedFieldsSchema
 
 export type DelegateConfig = z.infer<typeof v1ConfigSchema>;
 export type ModelPrice = z.infer<typeof modelPriceSchema>;
+
+const repairProxySchema = z.object({
+  port: z.number().int().min(1).max(65_535),
+  logPath: z.string().min(1),
+  telemetryPath: z.string().min(1),
+});
+
+const providerSchema = z.object({
+  name: z.string().min(1),
+  baseUrl: z.url(),
+  keychainService: z.string().min(1),
+  models: z.record(z.string().min(1), modelPriceSchema),
+  efforts: z.array(effortSchema).min(1),
+  enabled: z.boolean(),
+  repairProxy: repairProxySchema.nullable(),
+});
+
+const workerTierSchema = z.object({ provider: z.string().min(1), model: z.string().min(1), effort: effortSchema });
+
+export const configSchema = sharedFieldsSchema
+  .extend({
+    version: z.literal(2),
+    providers: z.record(z.string().regex(/^[a-z0-9-]+$/, 'use lowercase letters, digits and dashes'), providerSchema),
+    tiers: z.object({ 'flash-low': workerTierSchema, 'flash-high': workerTierSchema, 'pro-high': workerTierSchema }),
+    proxy: z.object({ dir: z.string().min(1) }),
+  })
+  .superRefine((config, context) => {
+    const agentReferences: [string[], string][] = [
+      [['claude', 'defaultAgent'], config.claude.defaultAgent],
+      ...Object.entries(config.claude.taskTypes).map(([taskType, name]): [string[], string] => [['claude', 'taskTypes', taskType], name]),
+    ];
+    for (const [path, name] of agentReferences) {
+      if (!config.claude.agents[name]) {
+        context.addIssue({ code: 'custom', path, message: `claude agent ${name} is not defined in claude.agents` });
+      }
+    }
+    for (const [tierName, tier] of Object.entries(config.tiers)) {
+      const provider = config.providers[tier.provider];
+      if (!provider) {
+        context.addIssue({ code: 'custom', path: ['tiers', tierName, 'provider'], message: `provider ${tier.provider} does not exist` });
+      } else if (!provider.enabled) {
+        context.addIssue({ code: 'custom', path: ['tiers', tierName, 'provider'], message: `provider ${tier.provider} is disabled` });
+      } else if (!provider.models[tier.model]) {
+        context.addIssue({ code: 'custom', path: ['tiers', tierName, 'model'], message: `model ${tier.model} has no entry in providers.${tier.provider}.models` });
+      }
+    }
+  });
+
+export type Provider = z.infer<typeof providerSchema>;
+export type RepairProxy = z.infer<typeof repairProxySchema>;
+
+export function formatIssues(error: z.ZodError): string[] {
+  return error.issues.map((issue) => `${issue.path.map(String).join('.') || 'config'}: ${issue.message}`);
+}
+
+export function configIssues(input: unknown): string[] {
+  const parsed = configSchema.safeParse(input);
+  return parsed.success ? [] : formatIssues(parsed.error);
+}
