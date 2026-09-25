@@ -42,7 +42,8 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
     const agentName = deps.config.claude.taskTypes[request.taskType] ?? deps.config.claude.defaultAgent;
     const agent = deps.config.claude.agents[agentName];
     await appendDecision(logPath, { ...base, ...NO_RUN, model: agent.model, effort: agent.effort, status: 'use_claude', reason: null, durationMs: Date.now() - startedAt });
-    return { status: 'use_claude', tier: 'claude', agent: agentName, model: agent.model, effort: agent.effort };
+    const next = `Do this task yourself through the Agent tool with subagent_type "${agentName}" (${agent.model}, effort ${agent.effort}), passing the full task.`;
+    return { status: 'use_claude', tier: 'claude', agent: agentName, model: agent.model, effort: agent.effort, next };
   }
   const refusal = await budgetRefusal(logPath, deps.config.budget);
   if (refusal) return refuse(logPath, base, refusal, startedAt);

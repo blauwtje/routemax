@@ -103,7 +103,14 @@ describe('delegate', () => {
   it('returns use_claude for a claude-tier task without starting a worker', async () => {
     const { deps, recordPath, home } = harness();
     const result = await delegate(request({ taskType: 'security' }), deps);
-    expect(result).toEqual({ status: 'use_claude', tier: 'claude', agent: 'claude-opus-xhigh', model: 'opus', effort: 'xhigh' });
+    expect(result).toEqual({
+      status: 'use_claude',
+      tier: 'claude',
+      agent: 'claude-opus-xhigh',
+      model: 'opus',
+      effort: 'xhigh',
+      next: 'Do this task yourself through the Agent tool with subagent_type "claude-opus-xhigh" (opus, effort xhigh), passing the full task.',
+    });
     expect(existsSync(recordPath)).toBe(false);
     expect(logLines(home)[0]).toMatchObject({ status: 'use_claude', costUsd: 0 });
   });

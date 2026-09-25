@@ -32,5 +32,5 @@ interface WorkerReport {
 export type DelegateResult =
   | ({ status: 'done' } & WorkerReport)
   | ({ status: 'escalate'; reason: EscalationReason } & WorkerReport)
-  | { status: 'use_claude'; tier: 'claude'; agent: string; model: string; effort: Effort }
+  | { status: 'use_claude'; tier: 'claude'; agent: string; model: string; effort: Effort; next: string }
   | { status: 'refused'; message: string };

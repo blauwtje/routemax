@@ -116,3 +116,43 @@ describe('delegate over stdio', () => {
     expect(resultTexts.join('')).not.toContain(FAKE_KEY);
   });
 });
+
+describe('delegate tool surface', () => {
+  async function connect(): Promise<Client> {
+    const transport = new StdioClientTransport({ command: join(ROOT, 'node_modules/.bin/tsx'), args: [join(ROOT, 'src/server.ts')], cwd: work, env: serverEnv });
+    const client = new Client({ name: 'routemax-surface', version: '0.1.0' });
+    await client.connect(transport);
+    return client;
+  }
+
+  it('tells the session when to delegate and keeps the tool out of tool-search deferral', async () => {
+    const client = await connect();
+    try {
+      expect(client.getInstructions()).toMatch(/delegate/);
+      const { tools } = await client.listTools();
+      const tool = tools.find((candidate) => candidate.name === 'delegate');
+      expect(tool?._meta).toMatchObject({ 'anthropic/alwaysLoad': true });
+      expect(tool?.inputSchema.required).toEqual(['task', 'taskType']);
+      const taskType = (tool?.inputSchema.properties as Record<string, { enum?: string[] }>).taskType;
+      expect(taskType.enum).toEqual(expect.arrayContaining(['search', 'boilerplate', 'build', 'security', 'debugging']));
+    } finally {
+      await client.close();
+    }
+  });
+
+  it('routes a call without requestedTier and names the Agent call for a Claude task', async () => {
+    const result = await callDelegate({ task: 'Review the session cookie flags.', taskType: 'security' });
+    expect(result).toMatchObject({ status: 'use_claude', agent: 'claude-opus-xhigh' });
+    expect(String(result.next)).toContain('subagent_type "claude-opus-xhigh"');
+  });
+
+  it('rejects a task type outside the routing rules', async () => {
+    const client = await connect();
+    try {
+      const response = await client.callTool({ name: 'delegate', arguments: { task: 'Do it.', taskType: 'refactor', requestedTier: 'flash-low' } });
+      expect(response.isError).toBe(true);
+    } finally {
+      await client.close();
+    }
+  });
+});

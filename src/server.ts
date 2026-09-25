@@ -8,25 +8,35 @@ import { ensureProxy } from './proxy/ensure-proxy';
 import { readApiKey } from './worker/read-api-key';
 
 const config = loadConfig();
-const server = new McpServer({ name: 'deepseek-delegate', version: '0.1.0' });
+const taskTypes = [...new Set(config.rules.flatMap((rule) => rule.taskTypes))];
+
+const INSTRUCTIONS = [
+  'Hand self-contained work to the delegate tool instead of doing it yourself: finding where something is defined or used across files, reading and summarizing files, writing tests or boilerplate, small edits, and builds with a clear spec.',
+  'It runs on a cheap DeepSeek model in the current working directory and returns a short summary and the changed files; check those files before you rely on them.',
+  'Do the work yourself when it needs this conversation, when one Grep or Read answers it, or when it is architecture, security, auth, a migration, concurrency, debugging without a known cause or irreversible; delegate answers those with use_claude and names the agent to run.',
+  'On escalate, read the reason, review the listed changed files (nothing is reverted) and finish the task yourself.',
+].join(' ');
+
+const server = new McpServer({ name: 'deepseek-delegate', version: '0.1.0' }, { instructions: INSTRUCTIONS });
 
 server.registerTool(
   'delegate',
   {
     description:
-      'Run a cheap task (search, read, summarize, boilerplate, tests, simple edits, a build with a clear spec) in a DeepSeek worker in the current working directory. ' +
-      'Returns status "done" with a short summary, the changed files and the cost; "escalate" with a reason and the changed files when the worker failed (nothing is reverted); ' +
-      '"use_claude" with the agent, model and effort to use when the task belongs on Claude; "refused" when the budget or setup blocks the call.',
+      'Run a self-contained task on a cheap DeepSeek worker in the current working directory. ' +
+      'Good fits: "list every caller of parseConfig with file:line", "summarize what src/proxy does", "write vitest tests for src/budget/usage-cost.ts", "add a --json flag to the CLI: <spec>". ' +
+      'Not for work that needs this conversation, a single quick Grep, or architecture, security, auth, migration, concurrency and unknown-cause debugging, which come back as use_claude. ' +
+      'Returns "done" with a summary, the changed files and the cost; "escalate" with a reason and the changed files, which are kept; "use_claude" with the agent to run through the Agent tool; "refused" when the budget or setup blocks the call.',
     inputSchema: {
-      task: z.string().min(1).describe('The complete, self-contained task. The worker sees none of this conversation.'),
+      task: z.string().min(1).describe('The complete task. The worker sees none of this conversation, so name the files, the goal and what done means.'),
       taskType: z
-        .string()
-        .min(1)
-        .describe('One of: search, read, summarize, boilerplate, tests, simple-edit, build, architecture, debugging, security, auth, migration, concurrency.'),
-      requestedTier: z.enum(TIER_ORDER).describe('The lowest tier to use. Routing only raises it: flash-low < flash-high < pro-high < claude.'),
-      claudeEffort: z.enum(EFFORT_ORDER).optional().describe('The effort this task would get on Claude. A higher value raises the worker effort.'),
-      flags: z.array(z.string()).default([]).describe('Signals such as irreversible or unknown-cause that keep the task on Claude.'),
+        .enum(taskTypes)
+        .describe('The closest kind: search, read and summarize are read-only; boilerplate, tests and simple-edit are small changes; build is a larger change with a clear spec; the rest stays on Claude.'),
+      requestedTier: z.enum(TIER_ORDER).default('flash-low').describe('Optional. The lowest tier to use; routing only raises it: flash-low < flash-high < pro-high < claude.'),
+      claudeEffort: z.enum(EFFORT_ORDER).optional().describe('Optional. The effort this task would get on Claude; a higher value raises the worker effort.'),
+      flags: z.array(z.string()).default([]).describe('Optional. irreversible or unknown-cause keep the task on Claude.'),
     },
+    _meta: { 'anthropic/alwaysLoad': true },
   },
   async (input) => {
     const result = await delegate(input, {
