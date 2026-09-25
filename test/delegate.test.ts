@@ -107,4 +107,90 @@ describe('delegate', () => {
     expect(existsSync(recordPath)).toBe(false);
     expect(logLines(home)[0]).toMatchObject({ status: 'use_claude', costUsd: 0 });
   });
+
+  it('refuses inside a worker (recursion guard)', async () => {
+    const { deps, recordPath } = harness({ env: { DEEPSEEK_DELEGATE_DEPTH: '1' } });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'refused' });
+    expect(existsSync(recordPath)).toBe(false);
+  });
+
+  it('refuses before the call when spent-to-date from the log plus the per-call cap passes the total', async () => {
+    const { deps, home, recordPath } = harness();
+    mkdirSync(dirname(decisionLogPath(home)), { recursive: true });
+    writeFileSync(decisionLogPath(home), `${JSON.stringify({ costUsd: 9.8 })}\n`);
+    const result = await delegate(request(), deps);
+    expect(result.status === 'refused' && result.message).toMatch(/Budget cap reached: \$9\.80 of \$10\.00/);
+    expect(existsSync(recordPath)).toBe(false);
+  });
+
+  it('stops a call that passes $0.25 and escalates with reason budget', async () => {
+    const { deps, home } = harness({ scenario: 'expensive' });
+    const result = await delegate(request(), deps);
+    expect(result).toMatchObject({ status: 'escalate', reason: 'budget' });
+    expect(logLines(home)[0].costUsd).toBeGreaterThan(0.25);
+  });
+
+  it('escalates with reason timeout', async () => {
+    const { deps } = harness({ scenario: 'hang', config: { workerTimeoutMs: 300 } });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'escalate', reason: 'timeout' });
+  });
+
+  it.each([
+    ['exit-code', 'exit-code'],
+    ['stream-error', 'stream-error'],
+    ['empty-result', 'empty-result'],
+  ])('escalates the %s scenario with reason %s', async (scenario, reason) => {
+    const { deps } = harness({ scenario });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'escalate', reason });
+  });
+
+  it('runs the project test command after the worker and escalates when it fails, listing changed files', async () => {
+    const { deps, cwd, recordPath } = harness({ testCommand: 'exit 1' });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'escalate', reason: 'tests-failed', changedFiles: [join(realpathSync(cwd), 'a.txt')] });
+    expect(JSON.parse(readFileSync(recordPath, 'utf8')).args).toContain('Bash(exit 1)');
+  });
+
+  it('passes when the test command passes', async () => {
+    const { deps } = harness({ testCommand: 'exit 0' });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done' });
+  });
+
+  it('escalates with reason test-timeout when the test command runs too long', async () => {
+    const { deps } = harness({ testCommand: 'sleep 30', config: { testTimeoutMs: 200 } });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'escalate', reason: 'test-timeout' });
+  });
+
+  it('logs retries without escalating while the threshold is unset', async () => {
+    const { deps, home } = harness({ env: { FAKE_CLAUDE_RETRIES: '3' } });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done' });
+    expect(logLines(home)[0]).toMatchObject({ status: 'done', retries: 3 });
+  });
+
+  it('escalates with reason retries once the threshold is set and passed', async () => {
+    const { deps } = harness({ env: { FAKE_CLAUDE_RETRIES: '3' }, config: { retryThreshold: 2 } });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'escalate', reason: 'retries' });
+  });
+
+  it('keeps the key out of the decision log and the result', async () => {
+    const { deps, home } = harness();
+    const result = await delegate(request(), deps);
+    expect(readFileSync(decisionLogPath(home), 'utf8')).not.toContain(FAKE_KEY);
+    expect(JSON.stringify(result)).not.toContain(FAKE_KEY);
+  });
+
+  it('fails closed without starting a worker when the key lookup fails', async () => {
+    const { deps, recordPath } = harness({
+      readApiKey: async () => {
+        throw new Error('DeepSeek API key not found in Keychain (service deepseek_api_key).');
+      },
+    });
+    expect(await delegate(request(), deps)).toEqual({ status: 'refused', message: 'DeepSeek API key not found in Keychain (service deepseek_api_key).' });
+    expect(existsSync(recordPath)).toBe(false);
+  });
+
+  it('refuses a base URL that is not the proxy on 127.0.0.1', async () => {
+    const { deps, recordPath } = harness({ baseUrl: 'http://example.com:8787' });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'refused' });
+    expect(existsSync(recordPath)).toBe(false);
+  });
 });
