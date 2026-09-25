@@ -29,6 +29,7 @@ const configSchema = z
         id: z.string().min(1),
         taskTypes: z.array(z.string()).default([]),
         keywords: z.array(z.string()).default([]),
+        keywordExemptTaskTypes: z.array(z.string()).default([]),
         flags: z.array(z.string()).default([]),
         tier: z.enum(TIER_ORDER),
       }),

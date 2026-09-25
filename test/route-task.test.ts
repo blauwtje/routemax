@@ -25,6 +25,11 @@ describe('routeTask', () => {
     expect(route('simple-edit', 'flash-low', 'Fix the OAuth callback')).toEqual({ tier: 'claude', raisedBy: 'claude-only' });
   });
 
+  it('keeps a read-only task at its tier when only a keyword matches', () => {
+    expect(route('search', 'flash-low', 'Find where the auth token is read')).toEqual({ tier: 'flash-low', raisedBy: null });
+    expect(route('summarize', 'flash-low', 'Summarize the migration scripts')).toEqual({ tier: 'flash-low', raisedBy: null });
+  });
+
   it('matches keywords as whole words only', () => {
     expect(route('simple-edit', 'flash-low', 'Rename the author field')).toEqual({ tier: 'flash-high', raisedBy: 'boilerplate-tests-edits' });
   });

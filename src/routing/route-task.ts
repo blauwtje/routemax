@@ -20,6 +20,7 @@ const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&
 function ruleMatches(rule: RoutingRule, request: RouteRequest): boolean {
   if (rule.taskTypes.includes(request.taskType)) return true;
   if (rule.flags.some((flag) => request.flags.includes(flag))) return true;
+  if (rule.keywordExemptTaskTypes.includes(request.taskType)) return false;
   return rule.keywords.some((keyword) => new RegExp(`\\b${escapeRegExp(keyword)}\\b`, 'i').test(request.task));
 }
 

@@ -13,7 +13,7 @@ const taskTypes = [...new Set(config.rules.flatMap((rule) => rule.taskTypes))];
 const INSTRUCTIONS = [
   'Hand self-contained work to the delegate tool instead of doing it yourself: finding where something is defined or used across files, reading and summarizing files, writing tests or boilerplate, small edits, and builds with a clear spec.',
   'It runs on a cheap DeepSeek model in the current working directory and returns a short summary and the changed files; check those files before you rely on them.',
-  'Do the work yourself when it needs this conversation, when one Grep or Read answers it, or when it is architecture, security, auth, a migration, concurrency, debugging without a known cause or irreversible; delegate answers those with use_claude and names the agent to run.',
+  'Do the work yourself when it needs this conversation, when one Grep or Read answers it, or when it changes architecture, security, auth, a migration or concurrency, debugs without a known cause or is irreversible (looking up or summarizing those topics is fine to delegate); delegate answers those with use_claude and names the agent to run.',
   'On escalate, read the reason, review the listed changed files (nothing is reverted) and finish the task yourself.',
 ].join(' ');
 
@@ -25,7 +25,7 @@ server.registerTool(
     description:
       'Run a self-contained task on a cheap DeepSeek worker in the current working directory. ' +
       'Good fits: "list every caller of parseConfig with file:line", "summarize what src/proxy does", "write vitest tests for src/budget/usage-cost.ts", "add a --json flag to the CLI: <spec>". ' +
-      'Not for work that needs this conversation, a single quick Grep, or architecture, security, auth, migration, concurrency and unknown-cause debugging, which come back as use_claude. ' +
+      'Not for work that needs this conversation, a single quick Grep, or changes to architecture, security, auth, migrations or concurrency and unknown-cause debugging, which come back as use_claude; a search, read or summary about those topics stays on DeepSeek. ' +
       'Returns "done" with a summary, the changed files and the cost; "escalate" with a reason and the changed files, which are kept; "use_claude" with the agent to run through the Agent tool; "refused" when the budget or setup blocks the call.',
     inputSchema: {
       task: z.string().min(1).describe('The complete task. The worker sees none of this conversation, so name the files, the goal and what done means.'),

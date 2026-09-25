@@ -16,6 +16,7 @@
         "oauth", "credential", "credentials", "secret", "secrets", "migration", "migrations", "migrate",
         "concurrency", "race condition", "deadlock", "irreversible"
       ],
+      "keywordExemptTaskTypes": ["search", "read", "summarize"],
       "flags": ["irreversible", "unknown-cause"],
       "tier": "claude"
     }

@@ -34,7 +34,7 @@ Each call appends one line to `~/.local/state/deepseek-delegate/decisions.jsonl`
 The server reads the file when it starts. After an edit, reconnect the server with `/mcp` or restart Claude Code.
 
 - `tiers`: the DeepSeek model and effort of `flash-low`, `flash-high` and `pro-high`.
-- `rules`: each rule has an `id`, a `tier`, and any of `taskTypes`, `keywords` (whole words in the task text) and `flags`. A task goes to the highest tier among its matching rules, and never below `requestedTier`.
+- `rules`: each rule has an `id`, a `tier`, and any of `taskTypes`, `keywords` (whole words in the task text), `keywordExemptTaskTypes` (task types the keywords never raise) and `flags`. A task goes to the highest tier among its matching rules, and never below `requestedTier`.
 - `effortMap`: how a caller's `claudeEffort` maps to a worker effort.
 - `claude`: the agents a `claude`-tier task may name (`agents`), which task type gets which agent (`taskTypes`), and `defaultAgent` for the rest. The agent files live in `agents/`.
 - `budget`: `totalUsd` caps all spend and `perCallUsd` stops a single call.
