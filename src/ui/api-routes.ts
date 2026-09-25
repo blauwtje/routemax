@@ -7,6 +7,8 @@ import { syncChezmoi } from '../config/sync-chezmoi';
 import { decisionLogPath } from '../decision-log/decision-log';
 import { runDoctorChecks, type DoctorDeps } from '../doctor/doctor-checks';
 import { isRouterEnabled, setRouterEnabled } from '../router-switch/router-switch';
+import { readApiKey } from '../worker/read-api-key';
+import { keyIssues, storeApiKey } from '../worker/store-api-key';
 import { decisionStats, readDecisions } from './decision-stats';
 import type { ApiResponse, ApiRoute } from './ui-server';
 
@@ -20,10 +22,13 @@ export interface UiDeps {
 const switchBodySchema = z.object({ enabled: z.boolean() });
 const saveBodySchema = z.object({ config: z.unknown(), baseHash: z.string() });
 const restoreBodySchema = z.object({ baseHash: z.string() });
+const keyBodySchema = z.object({ key: z.string() });
 const STORE_ERROR_STATUS = { stale: 409, invalid: 422, missing: 404 } as const;
 
 export const invalid = (issues: string[]): ApiResponse => ({ status: 422, body: { error: 'invalid', issues } });
 const ok = (body: unknown): ApiResponse => ({ status: 200, body });
+const missing = (issues: string[]): ApiResponse => ({ status: 404, body: { error: 'missing', issues } });
+const hasKey = (keychainService: string): Promise<boolean> => readApiKey(keychainService).then(() => true, () => false);
 
 async function storeReply(deps: UiDeps, outcome: StoreOutcome): Promise<ApiResponse> {
   if (!outcome.ok) return { status: STORE_ERROR_STATUS[outcome.kind], body: { error: outcome.kind, issues: outcome.issues } };
@@ -87,6 +92,34 @@ function doctorRoutes(deps: UiDeps): ApiRoute[] {
   return [{ method: 'GET', pattern: /^\/api\/doctor$/, handle: async () => ok({ checks: await runDoctorChecks(deps.doctorDeps()) }) }];
 }
 
+function keyRoutes(deps: UiDeps): ApiRoute[] {
+  return [
+    {
+      method: 'GET',
+      pattern: /^\/api\/keys$/,
+      handle: async () => {
+        const { providers } = loadConfig(deps.configPath);
+        const keys = await Promise.all(Object.entries(providers).map(async ([id, provider]) => [id, { present: await hasKey(provider.keychainService) }] as const));
+        return ok({ keys: Object.fromEntries(keys) });
+      },
+    },
+    {
+      method: 'PUT',
+      pattern: /^\/api\/keys\/([^/]+)$/,
+      handle: async ({ params: [providerId], body }) => {
+        const { providers } = loadConfig(deps.configPath);
+        if (!Object.hasOwn(providers, providerId)) return missing([`providers.${providerId}: no such provider`]);
+        const parsed = keyBodySchema.safeParse(body);
+        if (!parsed.success) return invalid(formatIssues(parsed.error));
+        const issues = keyIssues(parsed.data.key);
+        if (issues.length > 0) return invalid(issues);
+        await storeApiKey(providers[providerId].keychainService, parsed.data.key);
+        return ok({ present: await hasKey(providers[providerId].keychainService) });
+      },
+    },
+  ];
+}
+
 export function apiRoutes(deps: UiDeps): ApiRoute[] {
-  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps), ...doctorRoutes(deps)];
+  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps), ...doctorRoutes(deps), ...keyRoutes(deps)];
 }
