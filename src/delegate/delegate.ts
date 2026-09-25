@@ -5,6 +5,7 @@ import type { DelegateConfig, Effort, Provider } from '../config/config-schema';
 import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from '../decision-log/decision-log';
 import { countProxyRetries } from '../proxy/count-proxy-retries';
 import { proxyUrl, type ProxyStart } from '../proxy/ensure-proxy';
+import { isRouterEnabled } from '../router-switch/router-switch';
 import { claudeAgentFor, planRoute, type WorkerRoutePlan } from '../routing/plan-route';
 import { runTestCommand, type TestOutcome } from '../worker/run-test-command';
 import { runWorker, workerArgs, type WorkerOutcome } from '../worker/run-worker';
@@ -28,6 +29,7 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
     return { status: 'refused', message: 'delegate is not available inside a delegate worker.' };
   }
   const startedAt = Date.now();
+  if (!isRouterEnabled(deps.homeDir)) return handOffWhileDisabled(request, deps, startedAt);
   const plan = planRoute(deps.config, request);
   const logPath = decisionLogPath(deps.homeDir);
   const base: DecisionBase = {
@@ -53,6 +55,21 @@ function claudeHandoff(config: DelegateConfig, agentName: string): ClaudeHandoff
   const agent = config.claude.agents[agentName];
   const next = `Do this task yourself through the Agent tool with subagent_type "${agentName}" (${agent.model}, effort ${agent.effort}), passing the full task.`;
   return { status: 'use_claude', tier: 'claude', agent: agentName, model: agent.model, effort: agent.effort, next };
+}
+
+async function handOffWhileDisabled(request: DelegateRequest, deps: DelegateDeps, startedAt: number): Promise<ClaudeHandoff> {
+  const handoff = claudeHandoff(deps.config, claudeAgentFor(deps.config, request.taskType));
+  const base: DecisionBase = {
+    ts: new Date(startedAt).toISOString(),
+    cwd: deps.cwd,
+    taskType: request.taskType,
+    requestedTier: request.requestedTier,
+    finalTier: 'claude',
+    raisedBy: null,
+    provider: null,
+  };
+  await appendDecision(decisionLogPath(deps.homeDir), { ...base, ...NO_RUN, model: handoff.model, effort: handoff.effort, status: 'disabled', reason: null, durationMs: Date.now() - startedAt });
+  return { ...handoff, reason: 'disabled' };
 }
 
 async function runDeepseekTask(request: DelegateRequest, plan: WorkerRoutePlan, base: DecisionBase, deps: DelegateDeps, startedAt: number): Promise<DelegateResult> {

@@ -9,6 +9,7 @@ import { decisionLogPath } from '../src/decision-log/decision-log';
 import { delegate, type DelegateDeps } from '../src/delegate/delegate';
 import type { DelegateRequest } from '../src/delegate/delegate-result';
 import type { ProxyStart } from '../src/proxy/ensure-proxy';
+import { routerSwitchPath } from '../src/router-switch/router-switch';
 
 const FAKE_CLAUDE = fileURLToPath(new URL('./fixtures/fake-claude.mjs', import.meta.url));
 const FAKE_KEY = 'sk-fake-DO-NOT-LEAK';
@@ -73,6 +74,11 @@ const request = (overrides: Partial<DelegateRequest> = {}): DelegateRequest => (
 const logLines = (home: string) =>
   readFileSync(decisionLogPath(home), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
 
+function writeSwitch(home: string, state: 'on' | 'off'): void {
+  mkdirSync(dirname(routerSwitchPath(home)), { recursive: true });
+  writeFileSync(routerSwitchPath(home), `${state}\n`);
+}
+
 describe('delegate', () => {
   it('runs a flash-high worker and returns summary, changed files, tier, model, effort and cost', async () => {
     const { deps, cwd, recordPath, home } = harness();
@@ -125,6 +131,32 @@ describe('delegate', () => {
     });
     expect(existsSync(recordPath)).toBe(false);
     expect(logLines(home)[0]).toMatchObject({ status: 'use_claude', costUsd: 0, provider: null });
+  });
+
+  it('hands a worker task to the mapped Claude agent without a worker and logs it as disabled while the switch is off', async () => {
+    const { deps, recordPath, home } = harness();
+    writeSwitch(home, 'off');
+    const result = await delegate(request({ taskType: 'search' }), deps);
+    expect(result).toEqual({
+      status: 'use_claude',
+      tier: 'claude',
+      agent: 'claude-opus-high',
+      model: 'opus',
+      effort: 'high',
+      next: 'Do this task yourself through the Agent tool with subagent_type "claude-opus-high" (opus, effort high), passing the full task.',
+      reason: 'disabled',
+    });
+    expect(existsSync(recordPath)).toBe(false);
+    expect(logLines(home)).toHaveLength(1);
+    expect(logLines(home)[0]).toMatchObject({ taskType: 'search', finalTier: 'claude', raisedBy: null, provider: null, model: 'opus', effort: 'high', status: 'disabled', reason: null, costUsd: 0, retries: 0 });
+  });
+
+  it('runs a worker again once the switch file says on', async () => {
+    const { deps, recordPath, home } = harness();
+    writeSwitch(home, 'on');
+    const result = await delegate(request(), deps);
+    expect(result.status).toBe('done');
+    expect(existsSync(recordPath)).toBe(true);
   });
 
   it('refuses inside a worker (recursion guard)', async () => {

@@ -4,6 +4,8 @@ import type { TokenUsage } from '../budget/usage-cost';
 import type { Effort, Tier } from '../config/config-schema';
 import type { DelegateStatus, EscalationReason } from '../delegate/delegate-result';
 
+export type DecisionStatus = DelegateStatus | 'disabled';
+
 export interface DecisionRecord extends TokenUsage {
   ts: string;
   cwd: string;
@@ -15,7 +17,7 @@ export interface DecisionRecord extends TokenUsage {
   model: string | null;
   effort: Effort | null;
   costUsd: number;
-  status: DelegateStatus;
+  status: DecisionStatus;
   reason: EscalationReason | null;
   durationMs: number;
   retries: number;
