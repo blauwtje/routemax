@@ -48,7 +48,9 @@ export function ensureLiveConfig(homeDir: string, seedPath = DEFAULT_CONFIG_PATH
   return livePath;
 }
 
-export function loadConfig(path = process.env.DEEPSEEK_DELEGATE_CONFIG ?? ensureLiveConfig(homedir())): DelegateConfig {
+export const activeConfigPath = () => process.env.DEEPSEEK_DELEGATE_CONFIG ?? ensureLiveConfig(homedir());
+
+export function loadConfig(path = activeConfigPath()): DelegateConfig {
   const { config } = readValidConfig(path);
   const providers = Object.fromEntries(Object.entries(config.providers).map(([id, provider]) => [id, expandProxyPaths(provider)]));
   return { ...config, providers };

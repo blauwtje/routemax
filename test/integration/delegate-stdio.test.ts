@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { DelegateConfig } from '../../src/config/config-schema';
 import { DEFAULT_CONFIG_PATH } from '../../src/config/delegate-config';
@@ -65,7 +66,7 @@ afterAll(() => {
   if (existsSync(pidFile)) process.kill(Number(readFileSync(pidFile, 'utf8')), 'SIGTERM');
 });
 
-async function callDelegate(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+async function connect(): Promise<Client> {
   const transport = new StdioClientTransport({
     command: join(ROOT, 'node_modules/.bin/tsx'),
     args: [join(ROOT, 'src/server.ts')],
@@ -76,13 +77,34 @@ async function callDelegate(args: Record<string, unknown>): Promise<Record<strin
   transport.stderr?.on('data', (chunk) => stderrChunks.push(String(chunk)));
   const client = new Client({ name: 'routemax-integration', version: '0.1.0' });
   await client.connect(transport);
+  return client;
+}
+
+async function callOn(client: Client, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const response = await client.callTool({ name: 'delegate', arguments: args }, undefined, { timeout: CALL_TIMEOUT_MS });
+  const text = (response.content as { type: string; text: string }[])[0].text;
+  resultTexts.push(text);
+  return JSON.parse(text) as Record<string, unknown>;
+}
+
+async function callDelegate(args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const client = await connect();
   try {
-    const response = await client.callTool({ name: 'delegate', arguments: args }, undefined, { timeout: CALL_TIMEOUT_MS });
-    const text = (response.content as { type: string; text: string }[])[0].text;
-    resultTexts.push(text);
-    return JSON.parse(text) as Record<string, unknown>;
+    return await callOn(client, args);
   } finally {
     await client.close();
+  }
+}
+
+function nextToolListChange(client: Client): Promise<void> {
+  return new Promise((resolve) => client.setNotificationHandler(ToolListChangedNotificationSchema, () => resolve()));
+}
+
+async function waitFor(condition: () => boolean, timeoutMs = 10_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() > deadline) throw new Error('condition not met in time');
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 }
 
@@ -121,13 +143,6 @@ describe('delegate over stdio', () => {
 });
 
 describe('delegate tool surface', () => {
-  async function connect(): Promise<Client> {
-    const transport = new StdioClientTransport({ command: join(ROOT, 'node_modules/.bin/tsx'), args: [join(ROOT, 'src/server.ts')], cwd: work, env: serverEnv });
-    const client = new Client({ name: 'routemax-surface', version: '0.1.0' });
-    await client.connect(transport);
-    return client;
-  }
-
   it('tells the session when to delegate and keeps the tool out of tool-search deferral', async () => {
     const client = await connect();
     try {
@@ -158,4 +173,30 @@ describe('delegate tool surface', () => {
       await client.close();
     }
   });
+});
+
+describe('live config in an open session', () => {
+  it('routes the next call with a saved routing change and keeps the config when the file turns invalid', async () => {
+    const configPath = serverEnv.DEEPSEEK_DELEGATE_CONFIG;
+    const original = readFileSync(configPath, 'utf8');
+    const security = { task: 'Review the session cookie flags.', taskType: 'security' };
+    const client = await connect();
+    try {
+      expect(await callOn(client, security)).toMatchObject({ status: 'use_claude', agent: 'claude-opus-xhigh' });
+      const changed = JSON.parse(original) as DelegateConfig;
+      changed.rules = [{ id: 'refactor-on-claude', taskTypes: ['refactor'], keywords: [], keywordExemptTaskTypes: [], flags: [], tier: 'claude' }, ...changed.rules];
+      changed.claude.taskTypes.security = 'claude-sonnet-high';
+      const schemaChanged = nextToolListChange(client);
+      writeFileSync(configPath, JSON.stringify(changed));
+      await schemaChanged;
+      expect(await callOn(client, { task: 'Rename a helper.', taskType: 'refactor' })).toMatchObject({ status: 'use_claude', tier: 'claude' });
+      expect(await callOn(client, security)).toMatchObject({ agent: 'claude-sonnet-high' });
+      writeFileSync(configPath, '{ not json');
+      await waitFor(() => stderrChunks.join('').includes('keeping the previous config'));
+      expect(await callOn(client, security)).toMatchObject({ agent: 'claude-sonnet-high' });
+    } finally {
+      writeFileSync(configPath, original);
+      await client.close();
+    }
+  }, 30_000);
 });
