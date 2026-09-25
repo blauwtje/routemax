@@ -6,6 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { addDeepseekHomeToChezmoi } from '../src/setup/add-deepseek-home-to-chezmoi';
 import { createDeepseekHome } from '../src/setup/create-deepseek-home';
+import { installAgents } from '../src/setup/install-agents';
+
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
+const REPO_AGENTS = join(ROOT, 'agents');
+const AGENT_FILES = ['claude-opus-high.md', 'claude-opus-xhigh.md', 'claude-sonnet-high.md'];
 
 function fakeChezmoi(root: string) {
   const source = join(root, 'chezmoi');
@@ -89,5 +94,41 @@ describe('addDeepseekHomeToChezmoi', () => {
     const report = await addDeepseekHomeToChezmoi({ homeDir: home, chezmoiBin: join(root, 'no-chezmoi') });
     expect(report.added).toEqual([]);
     expect(report.messages.join('\n')).toContain(`chezmoi add ${join(home, '.claude-deepseek', 'env.vars')}`);
+  });
+});
+
+describe('installAgents', () => {
+  it('copies the agents into the chezmoi source only and applies those targets', async () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    const chezmoi = fakeChezmoi(root);
+    const report = await installAgents({ repoAgentsDir: REPO_AGENTS, homeDir: home, chezmoiBin: chezmoi.bin });
+    expect(report.installed).toEqual(AGENT_FILES);
+    expect(readdirSync(join(chezmoi.source, 'dot_claude', 'agents')).sort()).toEqual(AGENT_FILES);
+    expect(existsSync(join(home, '.claude'))).toBe(false);
+    expect(readFileSync(chezmoi.applyLog, 'utf8').trim().split(' ')).toEqual(AGENT_FILES.map((name) => join(home, '.claude', 'agents', name)));
+    const again = await installAgents({ repoAgentsDir: REPO_AGENTS, homeDir: home, chezmoiBin: chezmoi.bin });
+    expect(again.installed).toEqual([]);
+  });
+
+  it('changes nothing and prints where to add the files when chezmoi is missing', async () => {
+    const root = tempRoot();
+    const report = await installAgents({ repoAgentsDir: REPO_AGENTS, homeDir: join(root, 'home'), chezmoiBin: join(root, 'no-chezmoi') });
+    expect(report.installed).toEqual([]);
+    expect(report.messages.join('\n')).toContain('dot_claude/agents/');
+    expect(report.messages.join('\n')).toContain(join(REPO_AGENTS, 'claude-opus-high.md'));
+    expect(existsSync(join(root, 'home'))).toBe(false);
+  });
+
+  it('changes nothing when a target is a chezmoi template', async () => {
+    const root = tempRoot();
+    const chezmoi = fakeChezmoi(root);
+    mkdirSync(join(chezmoi.source, 'dot_claude', 'agents'));
+    writeFileSync(join(chezmoi.source, 'dot_claude', 'agents', 'claude-opus-high.md.tmpl'), 'template');
+    const report = await installAgents({ repoAgentsDir: REPO_AGENTS, homeDir: join(root, 'home'), chezmoiBin: chezmoi.bin });
+    expect(report.installed).toEqual([]);
+    expect(report.messages.join('\n')).toContain('claude-opus-high.md.tmpl');
+    expect(readdirSync(join(chezmoi.source, 'dot_claude', 'agents'))).toEqual(['claude-opus-high.md.tmpl']);
+    expect(existsSync(chezmoi.applyLog)).toBe(false);
   });
 });
