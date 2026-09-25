@@ -10,6 +10,8 @@ const POLL_MS = 200;
 export interface ProxyStart {
   dir: string;
   logPath: string;
+  // The proxy defaults its telemetry path to its own HOME; passing it keeps the proxy writing where the delegate reads retries.
+  telemetryPath: string;
   healthUrl: string;
 }
 
@@ -27,6 +29,7 @@ export async function ensureProxy(start: ProxyStart): Promise<'running' | 'start
   const log = openSync(start.logPath, 'a');
   const proxy = spawn(join(start.dir, 'node_modules', '.bin', 'tsx'), ['src/server.ts'], {
     cwd: start.dir,
+    env: { ...process.env, TELEMETRY_PATH: start.telemetryPath },
     detached: true,
     stdio: ['ignore', log, log],
   });

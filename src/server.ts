@@ -45,7 +45,7 @@ server.registerTool(
       cwd: process.cwd(),
       env: process.env,
       readApiKey,
-      ensureProxy: (healthUrl) => ensureProxy({ dir: config.proxy.dir, logPath: config.proxy.logPath, healthUrl }),
+      ensureProxy: (healthUrl) => ensureProxy({ dir: config.proxy.dir, logPath: config.proxy.logPath, telemetryPath: config.proxy.telemetryPath, healthUrl }),
     });
     return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }], isError: result.status === 'refused' };
   },

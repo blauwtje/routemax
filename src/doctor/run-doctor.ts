@@ -15,7 +15,7 @@ const checks = await runDoctorChecks({
   config,
   registration: serverRegistration(repoRoot),
   readApiKey,
-  ensureProxy: (healthUrl) => ensureProxy({ dir: config.proxy.dir, logPath: config.proxy.logPath, healthUrl }),
+  ensureProxy: (healthUrl) => ensureProxy({ dir: config.proxy.dir, logPath: config.proxy.logPath, telemetryPath: config.proxy.telemetryPath, healthUrl }),
 });
 
 for (const check of checks) console.log(`${check.ok ? 'OK ' : 'FIX'}  ${check.name}: ${check.message}`);
