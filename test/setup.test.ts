@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { addDeepseekHomeToChezmoi } from '../src/setup/add-deepseek-home-to-chezmoi';
 import { createDeepseekHome } from '../src/setup/create-deepseek-home';
+import { findAnthropicVariables } from '../src/setup/find-anthropic-variables';
 import { installAgents } from '../src/setup/install-agents';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
@@ -130,5 +131,48 @@ describe('installAgents', () => {
     expect(report.messages.join('\n')).toContain('claude-opus-high.md.tmpl');
     expect(readdirSync(join(chezmoi.source, 'dot_claude', 'agents'))).toEqual(['claude-opus-high.md.tmpl']);
     expect(existsSync(chezmoi.applyLog)).toBe(false);
+  });
+});
+
+describe('findAnthropicVariables', () => {
+  it('names every ANTHROPIC_ variable in the Max settings file', async () => {
+    const path = join(tempRoot(), 'settings.json');
+    writeFileSync(path, JSON.stringify({ env: { ANTHROPIC_BASE_URL: 'http://127.0.0.1:8787', OTHER: '1' } }));
+    expect(await findAnthropicVariables(path)).toEqual(['ANTHROPIC_BASE_URL']);
+    writeFileSync(path, JSON.stringify({ env: { OTHER: '1' } }));
+    expect(await findAnthropicVariables(path)).toEqual([]);
+    expect(await findAnthropicVariables(join(tempRoot(), 'missing.json'))).toEqual([]);
+  });
+});
+
+describe('npm run setup', () => {
+  const runSetup = (home: string, pathPrefix: string) =>
+    spawnSync(join(ROOT, 'node_modules/.bin/tsx'), [join(ROOT, 'src/setup/run-setup.ts')], {
+      env: { ...process.env, HOME: home, PATH: `${pathPrefix}:${process.env.PATH}` },
+      encoding: 'utf8',
+    });
+
+  it('writes nothing under ~/.claude/, leaves no ANTHROPIC_ variable there, and prints the registration command', () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    mkdirSync(home);
+    const chezmoi = fakeChezmoi(root);
+    const run = runSetup(home, join(root, 'bin'));
+    expect(run.status).toBe(0);
+    expect(existsSync(join(home, '.claude'))).toBe(false);
+    expect(existsSync(join(chezmoi.source, 'dot_claude', 'agents', 'claude-opus-high.md'))).toBe(true);
+    expect(readFileSync(chezmoi.addLog, 'utf8')).toContain(join(home, '.claude-deepseek', 'env.vars'));
+    expect(run.stdout).toContain('claude mcp add -s user deepseek-delegate -- ');
+  });
+
+  it('fails when ~/.claude/settings.json holds an ANTHROPIC_ variable', () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    mkdirSync(join(home, '.claude'), { recursive: true });
+    writeFileSync(join(home, '.claude', 'settings.json'), JSON.stringify({ env: { ANTHROPIC_MODEL: 'deepseek-v4-pro' } }));
+    fakeChezmoi(root);
+    const run = runSetup(home, join(root, 'bin'));
+    expect(run.status).toBe(1);
+    expect(run.stderr).toContain('ANTHROPIC_MODEL');
   });
 });
