@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { deepseekHomeDir, envVarsPath } from '../config/deepseek-home';
 import type { DelegateConfig } from '../config/config-schema';
 import { decisionLogPath, readSpentUsd } from '../decision-log/decision-log';
+import type { ProxyStart } from '../proxy/ensure-proxy';
 import { findAnthropicVariables } from '../setup/find-anthropic-variables';
 import { checkRegistration, registrationProblem, type ServerRegistration } from '../setup/register-server';
 import { parseEnvVars } from '../worker/worker-env';
@@ -20,7 +21,7 @@ export interface DoctorDeps {
   config: DelegateConfig;
   registration: ServerRegistration;
   readApiKey: () => Promise<string>;
-  ensureProxy: (healthUrl: string) => Promise<'running' | 'started'>;
+  ensureProxy: (start: ProxyStart) => Promise<'running' | 'started'>;
 }
 
 const RUN_SETUP = 'Run npm run setup.';
@@ -52,11 +53,12 @@ async function checkApiKey(deps: DoctorDeps): Promise<DoctorCheck> {
 
 async function checkProxy(deps: DoctorDeps, baseUrl: string | null): Promise<DoctorCheck> {
   if (!baseUrl) return fix('repair-proxy', 'Not checked until env.vars is fixed.');
+  const { proxy } = deps.config;
   try {
-    const state = await deps.ensureProxy(new URL('/healthz', baseUrl).href);
+    const state = await deps.ensureProxy({ dir: proxy.dir, logPath: proxy.logPath, telemetryPath: proxy.telemetryPath, healthUrl: new URL('/healthz', baseUrl).href });
     return pass('repair-proxy', state === 'started' ? 'The repair-proxy was down and is started now.' : 'The repair-proxy answers.');
   } catch {
-    return fix('repair-proxy', `The repair-proxy does not start; see ${deps.config.proxy.logPath}.`);
+    return fix('repair-proxy', `The repair-proxy does not start; see ${proxy.logPath}.`);
   }
 }
 

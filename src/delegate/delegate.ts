@@ -4,6 +4,7 @@ import { envVarsPath, mcpConfigPath } from '../config/deepseek-home';
 import type { DelegateConfig, Effort, WorkerTier } from '../config/config-schema';
 import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from '../decision-log/decision-log';
 import { countProxyRetries } from '../proxy/count-proxy-retries';
+import type { ProxyStart } from '../proxy/ensure-proxy';
 import { resolveEffort } from '../routing/resolve-effort';
 import { routeTask } from '../routing/route-task';
 import { runTestCommand, type TestOutcome } from '../worker/run-test-command';
@@ -17,7 +18,7 @@ export interface DelegateDeps {
   cwd: string;
   env: NodeJS.ProcessEnv;
   readApiKey: () => Promise<string>;
-  ensureProxy: (healthUrl: string) => Promise<unknown>;
+  ensureProxy: (start: ProxyStart) => Promise<unknown>;
 }
 
 const SUMMARY_LIMIT = 1_500;
@@ -93,7 +94,8 @@ async function workerEnvironment(deps: DelegateDeps, model: string, effort: Effo
   if (!URL.canParse(baseUrl) || new URL(baseUrl).hostname !== '127.0.0.1') {
     throw new Error('ANTHROPIC_BASE_URL in env.vars must point at the repair-proxy on 127.0.0.1.');
   }
-  await deps.ensureProxy(new URL('/healthz', baseUrl).href);
+  const { proxy } = deps.config;
+  await deps.ensureProxy({ dir: proxy.dir, logPath: proxy.logPath, telemetryPath: proxy.telemetryPath, healthUrl: new URL('/healthz', baseUrl).href });
   const apiKey = await deps.readApiKey();
   return buildWorkerEnv({ inherited: deps.env, envVars, model, apiKey, effort });
 }
