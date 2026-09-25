@@ -60,7 +60,6 @@ export const v1ConfigSchema = sharedFieldsSchema
     }
   });
 
-export type DelegateConfig = z.infer<typeof v1ConfigSchema>;
 export type ModelPrice = z.infer<typeof modelPriceSchema>;
 
 const repairProxySchema = z.object({
@@ -112,6 +111,7 @@ export const configSchema = sharedFieldsSchema
 
 export type Provider = z.infer<typeof providerSchema>;
 export type RepairProxy = z.infer<typeof repairProxySchema>;
+export type DelegateConfig = z.infer<typeof configSchema>;
 
 export function formatIssues(error: z.ZodError): string[] {
   return error.issues.map((issue) => `${issue.path.map(String).join('.') || 'config'}: ${issue.message}`);

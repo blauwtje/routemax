@@ -53,12 +53,13 @@ async function checkApiKey(deps: DoctorDeps): Promise<DoctorCheck> {
 
 async function checkProxy(deps: DoctorDeps, baseUrl: string | null): Promise<DoctorCheck> {
   if (!baseUrl) return fix('repair-proxy', 'Not checked until env.vars is fixed.');
-  const { proxy } = deps.config;
+  const repairProxy = deps.config.providers.deepseek?.repairProxy;
+  if (!repairProxy) return fix('repair-proxy', 'providers.deepseek has no repairProxy in the routemax config.');
   try {
-    const state = await deps.ensureProxy({ dir: proxy.dir, logPath: proxy.logPath, telemetryPath: proxy.telemetryPath, healthUrl: new URL('/healthz', baseUrl).href });
+    const state = await deps.ensureProxy({ dir: deps.config.proxy.dir, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath, healthUrl: new URL('/healthz', baseUrl).href });
     return pass('repair-proxy', state === 'started' ? 'The repair-proxy was down and is started now.' : 'The repair-proxy answers.');
   } catch {
-    return fix('repair-proxy', `The repair-proxy does not start; see ${proxy.logPath}.`);
+    return fix('repair-proxy', `The repair-proxy does not start; see ${repairProxy.logPath}.`);
   }
 }
 

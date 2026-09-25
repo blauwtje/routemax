@@ -36,7 +36,10 @@ function harness(options: HarnessOptions = {}) {
   const config: DelegateConfig = {
     ...shipped,
     claudeBin: FAKE_CLAUDE,
-    proxy: { ...shipped.proxy, telemetryPath },
+    providers: {
+      ...shipped.providers,
+      deepseek: { ...shipped.providers.deepseek, repairProxy: { port: 8787, logPath: join(root, 'proxy.log'), telemetryPath } },
+    },
     projects: options.testCommand ? { [cwd]: { testCommand: options.testCommand } } : {},
     ...options.config,
   };
