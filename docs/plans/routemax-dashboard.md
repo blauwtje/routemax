@@ -5382,7 +5382,7 @@ Risk: security boundary (the per-start token that gates every `/api/` request)
 Files:
 - Create: `web/src/lib/api-client.ts`
 - Test: `web/src/lib/api-client.test.ts`
-- Modify: `package.json` (`scripts.typecheck`)
+- Modify: `package.json` (the `"typecheck": "tsc --noEmit",` line inside `"scripts"`)
 
 Step 1: Write the failing test, `web/src/lib/api-client.test.ts`
 
@@ -5537,9 +5537,17 @@ Expected: PASS, 7 tests.
 
 Step 3: Type-check the web workspace with the root `typecheck`
 
-In the root `package.json`, `scripts.typecheck` must read:
+The root `package.json` today reads `"typecheck": "tsc --noEmit",` inside `"scripts"`; the root `tsconfig.json` includes only `src` and `test`, so `web/src` is checked only by `web/package.json`'s own `"typecheck": "tsc --noEmit"` script (which uses `web/tsconfig.json`, include `src`). Change that one line so the root script also runs the workspace's; the `"scripts"` block of the root `package.json` must read:
 ```json
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "doctor": "tsx src/doctor/run-doctor.ts",
+    "setup": "npm install --no-audit --no-fund && tsx src/setup/run-setup.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit && npm run typecheck --workspace web",
+    "build:web": "npm run build --workspace web"
+  },
 ```
 Run: `npm run typecheck && npm test`
 Expected: typecheck exits 0 with no `error TS` line; every test file passes, `0 failed`.
@@ -5552,7 +5560,7 @@ git commit -m "feat(web): send the page token with every API request" -m "Plan-t
 
 ### Task 44: Show the router state through the API client
 
-Depends on: Task 42, Task 43
+Depends on: Task 38, Task 42, Task 43
 
 Files:
 - Create: `web/src/lib/browser-api.ts`

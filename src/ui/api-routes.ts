@@ -2,15 +2,17 @@ import { z } from 'zod';
 import { configSchema, effortSchema, formatIssues, TIER_ORDER } from '../config/config-schema';
 import { readStoredConfig, restorePrevious, saveConfig, type StoreOutcome } from '../config/config-store';
 import { loadConfig } from '../config/delegate-config';
-import { previousConfigPath } from '../config/routemax-paths';
+import { previousConfigPath, providerTestsPath } from '../config/routemax-paths';
 import { syncChezmoi } from '../config/sync-chezmoi';
 import { decisionLogPath } from '../decision-log/decision-log';
+import type { DelegateDeps } from '../delegate/delegate';
 import { runDoctorChecks, type DoctorDeps } from '../doctor/doctor-checks';
 import { isRouterEnabled, setRouterEnabled } from '../router-switch/router-switch';
 import { planRoute } from '../routing/plan-route';
 import { readApiKey } from '../worker/read-api-key';
 import { keyIssues, storeApiKey } from '../worker/store-api-key';
 import { decisionStats, readDecisions } from './decision-stats';
+import { readProviderTests, recordProviderTest, testProvider } from './provider-test';
 import type { ApiResponse, ApiRoute } from './ui-server';
 
 export interface UiDeps {
@@ -18,6 +20,7 @@ export interface UiDeps {
   configPath: string;
   chezmoiBin: string;
   doctorDeps: () => DoctorDeps;
+  delegateDeps: () => DelegateDeps;
 }
 
 const switchBodySchema = z.object({ enabled: z.boolean() });
@@ -32,6 +35,7 @@ const planRequestSchema = z.object({
   flags: z.array(z.string()).default([]),
 });
 const previewBodySchema = z.object({ config: z.unknown(), request: planRequestSchema });
+const providerTestBodySchema = z.object({ model: z.string() });
 const STORE_ERROR_STATUS = { stale: 409, invalid: 422, missing: 404 } as const;
 
 export const invalid = (issues: string[]): ApiResponse => ({ status: 422, body: { error: 'invalid', issues } });
@@ -145,6 +149,29 @@ function previewRoutes(): ApiRoute[] {
   ];
 }
 
+function providerTestRoutes(deps: UiDeps): ApiRoute[] {
+  const resultsPath = providerTestsPath(deps.homeDir);
+  return [
+    { method: 'GET', pattern: /^\/api\/provider-tests$/, handle: async () => ok(readProviderTests(resultsPath)) },
+    {
+      method: 'POST',
+      pattern: /^\/api\/providers\/([^/]+)\/test$/,
+      handle: async ({ params: [providerId], body }) => {
+        const delegateDeps = deps.delegateDeps();
+        const { providers } = delegateDeps.config;
+        if (!Object.hasOwn(providers, providerId)) return missing([`providers.${providerId}: no such provider`]);
+        const parsed = providerTestBodySchema.safeParse(body);
+        if (!parsed.success) return invalid(formatIssues(parsed.error));
+        const { model } = parsed.data;
+        if (!Object.hasOwn(providers[providerId].models, model)) return invalid([`providers.${providerId}.models.${model}: no such model`]);
+        const result = await testProvider(delegateDeps, providerId, model);
+        recordProviderTest(resultsPath, result);
+        return ok(result);
+      },
+    },
+  ];
+}
+
 export function apiRoutes(deps: UiDeps): ApiRoute[] {
-  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps), ...doctorRoutes(deps), ...keyRoutes(deps), ...previewRoutes()];
+  return [...switchRoutes(deps), ...configRoutes(deps), ...decisionRoutes(deps), ...doctorRoutes(deps), ...keyRoutes(deps), ...previewRoutes(), ...providerTestRoutes(deps)];
 }

@@ -17,5 +17,8 @@ export function testUiDeps(homeDir: string): UiDeps {
     doctorDeps: () => {
       throw new Error('This test gives no doctor deps; pass doctorDeps to apiRoutes.');
     },
+    delegateDeps: () => {
+      throw new Error('This test gives no delegate deps; pass delegateDeps to apiRoutes.');
+    },
   };
 }
