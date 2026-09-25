@@ -1,11 +1,12 @@
 import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG_PATH, loadConfig } from '../src/config/delegate-config';
 import { decisionLogPath } from '../src/decision-log/decision-log';
 import { runDoctorChecks, type DoctorDeps } from '../src/doctor/doctor-checks';
+import { routerSwitchPath } from '../src/router-switch/router-switch';
 import { createDeepseekHome } from '../src/setup/create-deepseek-home';
 import { serverRegistration } from '../src/setup/register-server';
 import { fakeClaude, type McpGetEntry } from './helpers/fake-claude';
@@ -43,7 +44,7 @@ describe('runDoctorChecks', () => {
     const checks = await runDoctorChecks(doctorDeps(root));
 
     expect(checks.filter((check) => !check.ok)).toEqual([]);
-    expect(checks.map((check) => check.name)).toEqual(['env.vars', 'DeepSeek key', 'repair-proxy', 'MCP server', 'Claude agents', 'budget', 'Max settings']);
+    expect(checks.map((check) => check.name)).toEqual(['router', 'env.vars', 'DeepSeek key', 'repair-proxy', 'MCP server', 'Claude agents', 'budget', 'Max settings']);
     expect(JSON.stringify(checks)).not.toContain(SECRET);
   });
 
@@ -68,7 +69,7 @@ describe('runDoctorChecks', () => {
     );
 
     const byName = Object.fromEntries(checks.map((check) => [check.name, check]));
-    expect(checks.every((check) => !check.ok)).toBe(true);
+    expect(checks.filter((check) => check.name !== 'router').every((check) => !check.ok)).toBe(true);
     expect(byName['env.vars'].message).toContain('npm run setup');
     expect(byName['DeepSeek key'].message).toContain('security add-generic-password -a "$USER" -s deepseek_api_key -w');
     expect(byName['repair-proxy'].message).toContain('env.vars');
@@ -96,5 +97,14 @@ describe('runDoctorChecks', () => {
     fakeClaude(root);
     const checks = await runDoctorChecks(doctorDeps(root, { ensureProxy: async () => Promise.reject(new Error('down')) }));
     expect(checks.find((check) => check.name === 'repair-proxy')).toMatchObject({ ok: false, message: expect.stringContaining('/tmp/deepseek-proxy.log') });
+  });
+
+  it('reports the router as off without asking for a fix', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'routemax-doctor-'));
+    const deps = doctorDeps(root);
+    mkdirSync(dirname(routerSwitchPath(deps.homeDir)), { recursive: true });
+    writeFileSync(routerSwitchPath(deps.homeDir), 'off\n');
+    const checks = await runDoctorChecks(deps);
+    expect(checks.find((check) => check.name === 'router')).toMatchObject({ ok: true, message: expect.stringContaining('The router is off') });
   });
 });

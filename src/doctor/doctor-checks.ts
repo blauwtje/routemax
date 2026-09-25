@@ -5,6 +5,7 @@ import { deepseekHomeDir, envVarsPath } from '../config/deepseek-home';
 import type { DelegateConfig } from '../config/config-schema';
 import { decisionLogPath, readSpentUsd } from '../decision-log/decision-log';
 import type { ProxyStart } from '../proxy/ensure-proxy';
+import { isRouterEnabled, routerSwitchPath } from '../router-switch/router-switch';
 import { findAnthropicVariables } from '../setup/find-anthropic-variables';
 import { checkRegistration, registrationProblem, type ServerRegistration } from '../setup/register-server';
 import { parseEnvVars } from '../worker/worker-env';
@@ -64,6 +65,16 @@ async function checkProxy(deps: DoctorDeps, baseUrl: string | null): Promise<Doc
   }
 }
 
+function checkRouter(homeDir: string): DoctorCheck {
+  const path = routerSwitchPath(homeDir);
+  try {
+    if (isRouterEnabled(homeDir)) return pass('router', 'The router is on: delegate hands tasks to workers.');
+    return pass('router', `The router is off: every delegate call goes to Claude. Switch it on on the routemax page or write on to ${path}.`);
+  } catch (error) {
+    return fix('router', `${path} cannot be read (${(error as Error).message}).`);
+  }
+}
+
 async function checkServer(registration: ServerRegistration): Promise<DoctorCheck> {
   try {
     const problem = registrationProblem(await checkRegistration(registration));
@@ -98,6 +109,7 @@ async function checkMaxSettings(homeDir: string): Promise<DoctorCheck> {
 export async function runDoctorChecks(deps: DoctorDeps): Promise<DoctorCheck[]> {
   const baseUrl = await proxyBaseUrl(deps.homeDir);
   return [
+    checkRouter(deps.homeDir),
     checkEnvVars(baseUrl),
     await checkApiKey(deps),
     await checkProxy(deps, baseUrl),
