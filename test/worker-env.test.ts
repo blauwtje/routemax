@@ -22,21 +22,22 @@ describe('buildWorkerEnv', () => {
       DEEPSEEK_DELEGATE_DEPTH: '0',
     },
     envVars: { ANTHROPIC_BASE_URL: 'http://127.0.0.1:8787', ANTHROPIC_MODEL: 'deepseek-v4-pro', CLAUDE_CONFIG_DIR: '/Users/me/.claude-deepseek' },
+    baseUrl: 'https://openrouter.ai/api',
     model: 'deepseek-v4-flash',
     apiKey: 'sk-fake-key',
     effort: 'high',
   });
 
-  it('drops inherited Anthropic, Claude Code and delegate variables', () => {
-    expect(env.ANTHROPIC_API_KEY).toBeUndefined();
+  it('drops inherited Claude Code and delegate variables and empties the inherited API key', () => {
+    expect(env.ANTHROPIC_API_KEY).toBe('');
     expect(env.CLAUDECODE).toBeUndefined();
     expect(env.CLAUDE_CODE_ENTRYPOINT).toBeUndefined();
     expect(env.PATH).toBe('/usr/bin');
   });
 
-  it('layers env.vars, then the tier model, key, effort and depth', () => {
+  it('layers env.vars, then the provider URL, tier model, key, effort and depth', () => {
     expect(env).toMatchObject({
-      ANTHROPIC_BASE_URL: 'http://127.0.0.1:8787',
+      ANTHROPIC_BASE_URL: 'https://openrouter.ai/api',
       CLAUDE_CONFIG_DIR: '/Users/me/.claude-deepseek',
       ANTHROPIC_MODEL: 'deepseek-v4-flash',
       CLAUDE_CODE_SUBAGENT_MODEL: 'deepseek-v4-flash',

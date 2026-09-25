@@ -4,7 +4,7 @@ import { envVarsPath, mcpConfigPath } from '../config/deepseek-home';
 import type { DelegateConfig, Effort, Provider, WorkerTier } from '../config/config-schema';
 import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from '../decision-log/decision-log';
 import { countProxyRetries } from '../proxy/count-proxy-retries';
-import type { ProxyStart } from '../proxy/ensure-proxy';
+import { proxyUrl, type ProxyStart } from '../proxy/ensure-proxy';
 import { resolveEffort } from '../routing/resolve-effort';
 import { routeTask } from '../routing/route-task';
 import { runTestCommand, type TestOutcome } from '../worker/run-test-command';
@@ -87,20 +87,17 @@ async function runDeepseekTask(request: DelegateRequest, tier: WorkerTier, base:
 }
 
 async function workerEnvironment(deps: DelegateDeps, provider: Provider, model: string, effort: Effort): Promise<Record<string, string>> {
-  const { repairProxy } = provider;
-  if (!repairProxy) throw new Error("The tier's provider has no repairProxy in the routemax config.");
   const path = envVarsPath(deps.homeDir);
   const envVarsText = await readFile(path, 'utf8').catch(() => {
     throw new Error(`${path} is missing; run npm run setup in routemax first.`);
   });
-  const envVars = parseEnvVars(envVarsText);
-  const baseUrl = envVars.ANTHROPIC_BASE_URL ?? '';
-  if (!URL.canParse(baseUrl) || new URL(baseUrl).hostname !== '127.0.0.1') {
-    throw new Error('ANTHROPIC_BASE_URL in env.vars must point at the repair-proxy on 127.0.0.1.');
+  const { repairProxy } = provider;
+  if (repairProxy) {
+    await deps.ensureProxy({ dir: deps.config.proxy.dir, port: repairProxy.port, upstreamBaseUrl: provider.baseUrl, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath });
   }
-  await deps.ensureProxy({ dir: deps.config.proxy.dir, port: repairProxy.port, upstreamBaseUrl: provider.baseUrl, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath });
+  const baseUrl = repairProxy ? proxyUrl(repairProxy.port) : provider.baseUrl;
   const apiKey = await deps.readApiKey();
-  return buildWorkerEnv({ inherited: deps.env, envVars, model, apiKey, effort });
+  return buildWorkerEnv({ inherited: deps.env, envVars: parseEnvVars(envVarsText), baseUrl, model, apiKey, effort });
 }
 
 async function budgetRefusal(logPath: string, budget: DelegateConfig['budget']): Promise<string | null> {

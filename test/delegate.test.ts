@@ -8,6 +8,7 @@ import { DEFAULT_CONFIG_PATH, loadConfig } from '../src/config/delegate-config';
 import { decisionLogPath } from '../src/decision-log/decision-log';
 import { delegate, type DelegateDeps } from '../src/delegate/delegate';
 import type { DelegateRequest } from '../src/delegate/delegate-result';
+import type { ProxyStart } from '../src/proxy/ensure-proxy';
 
 const FAKE_CLAUDE = fileURLToPath(new URL('./fixtures/fake-claude.mjs', import.meta.url));
 const FAKE_KEY = 'sk-fake-DO-NOT-LEAK';
@@ -18,7 +19,7 @@ interface HarnessOptions {
   config?: Partial<DelegateConfig>;
   env?: Record<string, string>;
   testCommand?: string;
-  baseUrl?: string;
+  ensureProxy?: DelegateDeps['ensureProxy'];
   readApiKey?: () => Promise<string>;
 }
 
@@ -28,7 +29,7 @@ function harness(options: HarnessOptions = {}) {
   const cwd = join(root, 'work');
   mkdirSync(join(home, '.claude-deepseek'), { recursive: true });
   mkdirSync(cwd);
-  writeFileSync(join(home, '.claude-deepseek', 'env.vars'), `ANTHROPIC_BASE_URL=${options.baseUrl ?? 'http://127.0.0.1:8787'}\nANTHROPIC_MODEL=deepseek-v4-pro\n`);
+  writeFileSync(join(home, '.claude-deepseek', 'env.vars'), 'ANTHROPIC_BASE_URL=http://127.0.0.1:8787\nANTHROPIC_MODEL=deepseek-v4-pro\n');
   writeFileSync(join(home, '.claude-deepseek', 'mcp.json'), '{"mcpServers":{}}\n');
   const recordPath = join(root, 'record.json');
   const telemetryPath = join(root, 'telemetry.jsonl');
@@ -57,7 +58,7 @@ function harness(options: HarnessOptions = {}) {
     cwd,
     env,
     readApiKey: options.readApiKey ?? (async () => FAKE_KEY),
-    ensureProxy: async () => 'running',
+    ensureProxy: options.ensureProxy ?? (async () => 'running'),
   };
   return { deps, home, cwd, recordPath };
 }
@@ -92,7 +93,7 @@ describe('delegate', () => {
       subagentModel: 'deepseek-flash',
       effort: 'high',
       hasAuthToken: true,
-      hasApiKey: false,
+      hasApiKey: true,
       cwd: realpathSync(cwd),
     });
     expect(record.args).not.toContain('--dangerously-skip-permissions');
@@ -199,9 +200,19 @@ describe('delegate', () => {
     expect(existsSync(recordPath)).toBe(false);
   });
 
-  it('refuses a base URL that is not the proxy on 127.0.0.1', async () => {
-    const { deps, recordPath } = harness({ baseUrl: 'http://example.com:8787' });
-    expect(await delegate(request(), deps)).toMatchObject({ status: 'refused' });
-    expect(existsSync(recordPath)).toBe(false);
+  it("starts the provider's repair-proxy with its port and upstream", async () => {
+    const starts: ProxyStart[] = [];
+    const { deps } = harness({ ensureProxy: async (start) => starts.push(start) });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done' });
+    expect(starts).toEqual([expect.objectContaining({ port: 8787, upstreamBaseUrl: 'https://api.deepseek.com/anthropic' })]);
+  });
+
+  it('starts no proxy and still runs for a provider without a repair-proxy', async () => {
+    const starts: ProxyStart[] = [];
+    const { deps } = harness({ ensureProxy: async (start) => starts.push(start) });
+    const { deepseek } = deps.config.providers;
+    deps.config = { ...deps.config, providers: { ...deps.config.providers, deepseek: { ...deepseek, repairProxy: null } } };
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done' });
+    expect(starts).toEqual([]);
   });
 });

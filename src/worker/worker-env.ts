@@ -5,6 +5,7 @@ const NOT_INHERITED = /^(ANTHROPIC_|CLAUDE_CODE_|CLAUDECODE$|CLAUDE_CONFIG_DIR$|
 export interface WorkerEnvInput {
   inherited: NodeJS.ProcessEnv;
   envVars: Record<string, string>;
+  baseUrl: string;
   model: string;
   apiKey: string;
   effort: Effort;
@@ -27,9 +28,11 @@ export function buildWorkerEnv(input: WorkerEnvInput): Record<string, string> {
   return {
     ...Object.fromEntries(inherited),
     ...input.envVars,
+    ANTHROPIC_BASE_URL: input.baseUrl,
     ANTHROPIC_MODEL: input.model,
     CLAUDE_CODE_SUBAGENT_MODEL: input.model,
     ANTHROPIC_AUTH_TOKEN: input.apiKey,
+    ANTHROPIC_API_KEY: '',
     CLAUDE_CODE_EFFORT_LEVEL: input.effort,
     DEEPSEEK_DELEGATE_DEPTH: '1',
   };
