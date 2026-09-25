@@ -9,11 +9,14 @@ const POLL_MS = 200;
 
 export interface ProxyStart {
   dir: string;
+  port: number;
+  upstreamBaseUrl: string;
   logPath: string;
   // The proxy defaults its telemetry path to its own HOME; passing it keeps the proxy writing where the delegate reads retries.
   telemetryPath: string;
-  healthUrl: string;
 }
+
+export const proxyUrl = (port: number) => `http://127.0.0.1:${port}`;
 
 export async function isProxyHealthy(healthUrl: string): Promise<boolean> {
   try {
@@ -25,11 +28,12 @@ export async function isProxyHealthy(healthUrl: string): Promise<boolean> {
 }
 
 export async function ensureProxy(start: ProxyStart): Promise<'running' | 'started'> {
-  if (await isProxyHealthy(start.healthUrl)) return 'running';
+  const healthUrl = `${proxyUrl(start.port)}/healthz`;
+  if (await isProxyHealthy(healthUrl)) return 'running';
   const log = openSync(start.logPath, 'a');
   const proxy = spawn(join(start.dir, 'node_modules', '.bin', 'tsx'), ['src/server.ts'], {
     cwd: start.dir,
-    env: { ...process.env, TELEMETRY_PATH: start.telemetryPath },
+    env: { ...process.env, PORT: String(start.port), UPSTREAM_BASE_URL: start.upstreamBaseUrl, TELEMETRY_PATH: start.telemetryPath },
     detached: true,
     stdio: ['ignore', log, log],
   });
@@ -41,7 +45,7 @@ export async function ensureProxy(start: ProxyStart): Promise<'running' | 'start
   proxy.unref();
   for (let waited = 0; waited < START_WAIT_MS && !spawnFailed; waited += POLL_MS) {
     await sleep(POLL_MS);
-    if (await isProxyHealthy(start.healthUrl)) return 'started';
+    if (await isProxyHealthy(healthUrl)) return 'started';
   }
   throw new Error(`deepseek-proxy did not start; see ${start.logPath}`);
 }

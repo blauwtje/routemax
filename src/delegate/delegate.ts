@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { EMPTY_USAGE } from '../budget/usage-cost';
 import { envVarsPath, mcpConfigPath } from '../config/deepseek-home';
-import type { DelegateConfig, Effort, RepairProxy, WorkerTier } from '../config/config-schema';
+import type { DelegateConfig, Effort, Provider, WorkerTier } from '../config/config-schema';
 import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from '../decision-log/decision-log';
 import { countProxyRetries } from '../proxy/count-proxy-retries';
 import type { ProxyStart } from '../proxy/ensure-proxy';
@@ -60,7 +60,7 @@ async function runDeepseekTask(request: DelegateRequest, tier: WorkerTier, base:
   const logPath = decisionLogPath(deps.homeDir);
   let env: Record<string, string>;
   try {
-    env = await workerEnvironment(deps, provider.repairProxy, model, effort);
+    env = await workerEnvironment(deps, provider, model, effort);
   } catch (error) {
     return refuse(logPath, base, (error as Error).message, startedAt);
   }
@@ -86,7 +86,8 @@ async function runDeepseekTask(request: DelegateRequest, tier: WorkerTier, base:
   return reason ? { status: 'escalate', reason, ...report } : { status: 'done', ...report };
 }
 
-async function workerEnvironment(deps: DelegateDeps, repairProxy: RepairProxy | null, model: string, effort: Effort): Promise<Record<string, string>> {
+async function workerEnvironment(deps: DelegateDeps, provider: Provider, model: string, effort: Effort): Promise<Record<string, string>> {
+  const { repairProxy } = provider;
   if (!repairProxy) throw new Error("The tier's provider has no repairProxy in the routemax config.");
   const path = envVarsPath(deps.homeDir);
   const envVarsText = await readFile(path, 'utf8').catch(() => {
@@ -97,7 +98,7 @@ async function workerEnvironment(deps: DelegateDeps, repairProxy: RepairProxy | 
   if (!URL.canParse(baseUrl) || new URL(baseUrl).hostname !== '127.0.0.1') {
     throw new Error('ANTHROPIC_BASE_URL in env.vars must point at the repair-proxy on 127.0.0.1.');
   }
-  await deps.ensureProxy({ dir: deps.config.proxy.dir, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath, healthUrl: new URL('/healthz', baseUrl).href });
+  await deps.ensureProxy({ dir: deps.config.proxy.dir, port: repairProxy.port, upstreamBaseUrl: provider.baseUrl, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath });
   const apiKey = await deps.readApiKey();
   return buildWorkerEnv({ inherited: deps.env, envVars, model, apiKey, effort });
 }
