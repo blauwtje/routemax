@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { deepseekHomeDir, envVarsPath } from '../config/deepseek-home';
-import type { DelegateConfig } from '../config/config-schema';
+import type { DelegateConfig, Provider, RepairProxy } from '../config/config-schema';
 import { decisionLogPath, readSpentUsd } from '../decision-log/decision-log';
 import type { ProxyStart } from '../proxy/ensure-proxy';
 import { isRouterEnabled, routerSwitchPath } from '../router-switch/router-switch';
@@ -30,40 +30,42 @@ const RUN_SETUP = 'Run npm run setup.';
 const pass = (name: string, message: string): DoctorCheck => ({ name, ok: true, message });
 const fix = (name: string, message: string): DoctorCheck => ({ name, ok: false, message });
 
-async function proxyBaseUrl(homeDir: string): Promise<string | null> {
+async function checkEnvVars(homeDir: string): Promise<DoctorCheck> {
   const text = await readFile(envVarsPath(homeDir), 'utf8').catch(() => null);
-  if (text === null) return null;
-  const envVars = parseEnvVars(text);
-  const baseUrl = envVars.ANTHROPIC_BASE_URL ?? '';
-  const onLoopback = URL.canParse(baseUrl) && new URL(baseUrl).hostname === '127.0.0.1';
-  return onLoopback && envVars.CLAUDE_CONFIG_DIR === deepseekHomeDir(homeDir) ? baseUrl : null;
+  if (text !== null && parseEnvVars(text).CLAUDE_CONFIG_DIR === deepseekHomeDir(homeDir)) {
+    return pass('env.vars', 'The worker runs with its own Claude home, ~/.claude-deepseek.');
+  }
+  return fix('env.vars', `~/.claude-deepseek/env.vars is missing or does not point CLAUDE_CONFIG_DIR at ~/.claude-deepseek. ${RUN_SETUP}`);
 }
 
-function checkEnvVars(baseUrl: string | null): DoctorCheck {
-  if (baseUrl) return pass('env.vars', `The worker talks to the repair-proxy on ${baseUrl}.`);
-  return fix('env.vars', `~/.claude-deepseek/env.vars is missing or does not point at the proxy on 127.0.0.1 and at ~/.claude-deepseek. ${RUN_SETUP}`);
-}
-
-async function checkApiKey(deps: DoctorDeps): Promise<DoctorCheck> {
+async function checkProviderKey(deps: DoctorDeps, provider: Provider): Promise<DoctorCheck> {
+  const name = `${provider.name} key`;
   try {
-    await deps.readApiKey(deps.config.providers.deepseek.keychainService);
-    return pass('DeepSeek key', 'The DeepSeek key is in Keychain.');
+    await deps.readApiKey(provider.keychainService);
+    return pass(name, `The ${provider.name} key is in Keychain.`);
   } catch {
-    return fix('DeepSeek key', 'No DeepSeek key in Keychain. Store it once: security add-generic-password -a "$USER" -s deepseek_api_key -w');
+    return fix(name, `No ${provider.name} key in Keychain. Store it once: security add-generic-password -a "$USER" -s ${provider.keychainService} -w`);
   }
 }
 
-async function checkProxy(deps: DoctorDeps, baseUrl: string | null): Promise<DoctorCheck> {
-  if (!baseUrl) return fix('repair-proxy', 'Not checked until env.vars is fixed.');
-  const provider = deps.config.providers.deepseek;
-  const repairProxy = provider?.repairProxy;
-  if (!provider || !repairProxy) return fix('repair-proxy', 'providers.deepseek has no repairProxy in the routemax config.');
+async function checkProviderProxy(deps: DoctorDeps, provider: Provider, repairProxy: RepairProxy, envVarsOk: boolean): Promise<DoctorCheck> {
+  const name = `${provider.name} repair-proxy`;
+  if (!envVarsOk) return fix(name, 'Not checked until env.vars is fixed.');
   try {
     const state = await deps.ensureProxy({ dir: deps.config.proxy.dir, port: repairProxy.port, upstreamBaseUrl: provider.baseUrl, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath });
-    return pass('repair-proxy', state === 'started' ? 'The repair-proxy was down and is started now.' : 'The repair-proxy answers.');
+    return pass(name, state === 'started' ? `The ${provider.name} repair-proxy was down and is started now.` : `The ${provider.name} repair-proxy answers on port ${repairProxy.port}.`);
   } catch {
-    return fix('repair-proxy', `The repair-proxy does not start; see ${repairProxy.logPath}.`);
+    return fix(name, `The ${provider.name} repair-proxy does not start; see ${repairProxy.logPath}.`);
   }
+}
+
+async function checkProviders(deps: DoctorDeps, envVarsOk: boolean): Promise<DoctorCheck[]> {
+  const checks: DoctorCheck[] = [];
+  for (const provider of Object.values(deps.config.providers).filter((candidate) => candidate.enabled)) {
+    checks.push(await checkProviderKey(deps, provider));
+    if (provider.repairProxy) checks.push(await checkProviderProxy(deps, provider, provider.repairProxy, envVarsOk));
+  }
+  return checks;
 }
 
 function checkRouter(homeDir: string): DoctorCheck {
@@ -113,16 +115,13 @@ async function checkMaxSettings(homeDir: string): Promise<DoctorCheck> {
 }
 
 export async function runDoctorChecks(deps: DoctorDeps): Promise<DoctorCheck[]> {
-  const baseUrl = await proxyBaseUrl(deps.homeDir);
-  return [
-    checkRouter(deps.homeDir),
-    await checkRoutemaxCommand(deps),
-    checkEnvVars(baseUrl),
-    await checkApiKey(deps),
-    await checkProxy(deps, baseUrl),
+  const envVars = await checkEnvVars(deps.homeDir);
+  const setupChecks = [checkRouter(deps.homeDir), await checkRoutemaxCommand(deps), envVars];
+  const providerChecks = await checkProviders(deps, envVars.ok);
+  return setupChecks.concat(providerChecks, [
     await checkServer(deps.registration),
     await checkAgents(deps),
     await checkBudget(deps),
     await checkMaxSettings(deps.homeDir),
-  ];
+  ]);
 }
