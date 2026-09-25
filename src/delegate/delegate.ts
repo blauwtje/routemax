@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { EMPTY_USAGE } from '../budget/usage-cost';
 import { envVarsPath, mcpConfigPath } from '../config/deepseek-home';
-import type { DelegateConfig, Effort, WorkerTier } from '../config/delegate-config';
+import type { DelegateConfig, Effort, WorkerTier } from '../config/config-schema';
 import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from '../decision-log/decision-log';
 import { countProxyRetries } from '../proxy/count-proxy-retries';
 import { resolveEffort } from '../routing/resolve-effort';

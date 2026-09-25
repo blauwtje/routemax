@@ -1,4 +1,4 @@
-import { EFFORT_ORDER, type DelegateConfig, type Effort } from '../config/delegate-config';
+import { EFFORT_ORDER, type DelegateConfig, type Effort } from '../config/config-schema';
 
 export function resolveEffort(effortMap: DelegateConfig['effortMap'], tierEffort: Effort, claudeEffort?: Effort): Effort {
   if (!claudeEffort) return tierEffort;

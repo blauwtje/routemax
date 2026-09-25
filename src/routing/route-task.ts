@@ -1,4 +1,4 @@
-import { TIER_ORDER, type DelegateConfig, type Tier } from '../config/delegate-config';
+import { TIER_ORDER, type DelegateConfig, type Tier } from '../config/config-schema';
 
 type RoutingRule = DelegateConfig['rules'][number];
 

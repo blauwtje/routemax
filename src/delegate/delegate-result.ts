@@ -1,4 +1,4 @@
-import type { Effort, Tier, WorkerTier } from '../config/delegate-config';
+import type { Effort, Tier, WorkerTier } from '../config/config-schema';
 
 export type EscalationReason =
   | 'exit-code'
