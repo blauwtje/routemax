@@ -11,6 +11,10 @@ describe('configIssues', () => {
     expect(configIssues(validConfig())).toEqual([]);
   });
 
+  it('defaults smart routing to on when the seed omits it', () => {
+    expect(validConfig().smartRouting).toEqual({ enabled: true, checkTimeoutMs: 3000 });
+  });
+
   it('names the tier field when a tier points at an unknown provider', () => {
     const config = validConfig();
     config.tiers['flash-low'].provider = 'missing';

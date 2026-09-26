@@ -80,12 +80,18 @@ const providerSchema = z.object({
 
 const workerTierSchema = z.object({ provider: z.string().min(1), model: z.string().min(1), effort: effortSchema });
 
+export const smartRoutingSchema = z.object({
+  enabled: z.boolean(),
+  checkTimeoutMs: z.number().int().positive(),
+});
+
 export const configSchema = sharedFieldsSchema
   .extend({
     version: z.literal(2),
     providers: z.record(z.string().regex(/^[a-z0-9-]+$/, 'use lowercase letters, digits and dashes'), providerSchema),
     tiers: z.object({ 'flash-low': workerTierSchema, 'flash-high': workerTierSchema, 'pro-high': workerTierSchema }),
     proxy: z.object({ dir: z.string().min(1) }),
+    smartRouting: smartRoutingSchema.default({ enabled: true, checkTimeoutMs: 3000 }),
   })
   .superRefine((config, context) => {
     const agentReferences: [string[], string][] = [
@@ -111,6 +117,7 @@ export const configSchema = sharedFieldsSchema
 
 export type Provider = z.infer<typeof providerSchema>;
 export type RepairProxy = z.infer<typeof repairProxySchema>;
+export type SmartRouting = z.infer<typeof smartRoutingSchema>;
 export type DelegateConfig = z.infer<typeof configSchema>;
 
 export function formatIssues(error: z.ZodError): string[] {
