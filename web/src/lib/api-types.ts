@@ -1,7 +1,8 @@
 import type { DelegateConfig, Effort, Tier } from '../../../src/config/config-schema';
 import type { PlanRequest, RoutePlan } from '../../../src/routing/plan-route';
+import type { RoutePreview } from '../../../src/routing/smart-route';
 
-export type { DelegateConfig, PlanRequest, RoutePlan };
+export type { DelegateConfig, PlanRequest, RoutePlan, RoutePreview };
 
 export interface SwitchResponse {
   enabled: boolean;

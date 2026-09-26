@@ -13,6 +13,12 @@ export type SmartRoutePlan = RoutePlan & {
   checkCostUsd: number;
 };
 
+export type RoutePreview = RoutePlan & {
+  routedBy: Exclude<RoutedBy, 'check'>;
+  routeReason: string;
+  wouldCheck: boolean;
+};
+
 export interface SmartRouteDeps {
   readApiKey: (keychainService: string) => Promise<string>;
   fetchImpl: typeof fetch;
@@ -125,4 +131,38 @@ export async function smartRoute(config: DelegateConfig, request: PlanRequest, d
     return { ...claudePlan(config, request, raisedBy, smartEffort), routedBy, routeReason, checkCostUsd };
   }
   return { ...workerPlan(config, request, raisedBy, finalTier, smartEffort), routedBy, routeReason, checkCostUsd };
+}
+
+// Same rule and score stages as smartRoute, but never spends the paid check call: an
+// unconfident score is reported as wouldCheck instead of being resolved.
+export function previewRoute(config: DelegateConfig, request: PlanRequest): RoutePreview {
+  const ruleDecision = routeTask(config.rules, request);
+  if (ruleDecision.tier === 'claude') {
+    return {
+      ...claudePlan(config, request, ruleDecision.raisedBy, null),
+      routedBy: 'rules',
+      routeReason: ruleDecision.raisedBy ? `rule ${ruleDecision.raisedBy} keeps the task on Claude` : 'the requested tier is already Claude',
+      wouldCheck: false,
+    };
+  }
+
+  if (!config.smartRouting.enabled) {
+    return {
+      ...workerPlan(config, request, ruleDecision.raisedBy, ruleDecision.tier, null),
+      routedBy: 'off',
+      routeReason: 'smart routing is off',
+      wouldCheck: false,
+    };
+  }
+
+  const score = scoreTask(request.task, request.taskType);
+  const routeReason = score.signals.length > 0 ? `score signals: ${score.signals.join(', ')}` : 'score found no strong signal';
+  const finalTier = highestTier(highestTier(request.requestedTier, ruleDecision.tier), score.tier);
+  const raisedBy = finalTier === ruleDecision.tier ? ruleDecision.raisedBy : null;
+
+  const plan = finalTier === 'claude'
+    ? claudePlan(config, request, raisedBy, score.effort)
+    : workerPlan(config, request, raisedBy, finalTier, score.effort);
+
+  return { ...plan, routedBy: 'score', routeReason, wouldCheck: !score.confident };
 }

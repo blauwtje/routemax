@@ -5,7 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Tier } from '../src/config/config-schema';
 import { DEFAULT_CONFIG_PATH, loadConfig } from '../src/config/delegate-config';
 import { decisionLogPath } from '../src/decision-log/decision-log';
-import { planRoute, type PlanRequest } from '../src/routing/plan-route';
+import type { PlanRequest } from '../src/routing/plan-route';
+import { previewRoute } from '../src/routing/smart-route';
 import { apiRoutes } from '../src/ui/api-routes';
 import { startUiServer, type UiServer } from '../src/ui/ui-server';
 import { pageHeaders, uiCall } from './helpers/ui-client';
@@ -44,14 +45,24 @@ afterAll(() => server.close());
 const preview = (body: unknown) => uiCall(server.port, 'POST', '/api/route-preview', pageHeaders(server.port, server.token, true), body);
 
 describe('route preview API', () => {
-  it.each(SEED_CASES)('returns the same plan as the router for %s', async (_name, planRequest) => {
+  it.each(SEED_CASES)('returns the same plan as the smart preview for %s', async (_name, planRequest) => {
     const reply = await preview({ config, request: planRequest });
     expect(reply.status).toBe(200);
-    expect(reply.json()).toEqual(planRoute(config, planRequest));
+    expect(reply.json()).toEqual(previewRoute(config, planRequest));
   });
 
   it('plans a seed search on the DeepSeek flash tier', async () => {
     expect((await preview({ config, request: request('search', 'flash-low') })).json()).toMatchObject({ tier: 'flash-low', provider: 'deepseek', model: 'deepseek-flash' });
+  });
+
+  it('marks a confident score as needing no check', async () => {
+    const reply = await preview({ config, request: request('simple-edit', 'flash-low', 'Refactor the module because of a subtle edge case in the cache.') });
+    expect(reply.json()).toMatchObject({ routedBy: 'score', wouldCheck: false });
+  });
+
+  it('marks an unclear score as would-check without spending the paid call', async () => {
+    const reply = await preview({ config, request: request('unknown-type', 'flash-low', 'Handle it') });
+    expect(reply.json()).toMatchObject({ routedBy: 'score', wouldCheck: true });
   });
 
   it('refuses an invalid config with the field named', async () => {

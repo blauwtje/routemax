@@ -8,7 +8,7 @@ import { decisionLogPath } from '../decision-log/decision-log';
 import type { DelegateDeps } from '../delegate/delegate';
 import { runDoctorChecks, type DoctorDeps } from '../doctor/doctor-checks';
 import { isRouterEnabled, setRouterEnabled } from '../router-switch/router-switch';
-import { planRoute } from '../routing/plan-route';
+import { previewRoute } from '../routing/smart-route';
 import { readApiKey } from '../worker/read-api-key';
 import { keyIssues, storeApiKey } from '../worker/store-api-key';
 import { decisionStats, readDecisions } from './decision-stats';
@@ -143,7 +143,7 @@ function previewRoutes(): ApiRoute[] {
         if (!parsed.success) return invalid(formatIssues(parsed.error));
         const config = configSchema.safeParse(parsed.data.config);
         if (!config.success) return invalid(formatIssues(config.error));
-        return ok(planRoute(config.data, parsed.data.request));
+        return ok(previewRoute(config.data, parsed.data.request));
       },
     },
   ];
