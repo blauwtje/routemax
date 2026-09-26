@@ -24,6 +24,8 @@ Run `routemax ui` in any terminal. It opens a local page in your browser and run
 
 Switched off, a `delegate` call returns `use_claude` with `reason: "disabled"` and starts no worker. A save checks every field first, keeps the previous version for Restore, and runs `chezmoi re-add` on the config. The page listens only on 127.0.0.1 and needs the token in the URL it opens.
 
+Whether an open session drops `delegate` from its tool list when the switch turns off is not verified on Claude Code 2.1.283; anthropics/claude-code#77314 reports stdio servers not being refreshed. When `delegate` is still listed after a switch, restart the session or run `/mcp reconnect`. The switch holds either way: a call while off returns `use_claude` with `reason: "disabled"`, starts no worker, and the session does the task itself.
+
 ## Details
 
 ### Calling delegate
