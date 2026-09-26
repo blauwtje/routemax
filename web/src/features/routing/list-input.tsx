@@ -6,6 +6,7 @@ interface ListInputProps {
   value: string[] | undefined;
   onChange: (next: string[]) => void;
   className?: string;
+  placeholder?: string;
   'aria-invalid'?: boolean;
   'aria-describedby'?: string;
 }
@@ -17,7 +18,7 @@ function splitList(text: string): string[] {
     .filter((item) => item !== '');
 }
 
-export function ListInput({ id, value, onChange, className, 'aria-invalid': ariaInvalid, 'aria-describedby': ariaDescribedby }: ListInputProps) {
+export function ListInput({ id, value, onChange, className, placeholder, 'aria-invalid': ariaInvalid, 'aria-describedby': ariaDescribedby }: ListInputProps) {
   const joined = (value ?? []).join(', ');
   const [text, setText] = useState(joined);
   const [shownJoined, setShownJoined] = useState(joined);
@@ -32,6 +33,7 @@ export function ListInput({ id, value, onChange, className, 'aria-invalid': aria
       autoComplete="off"
       spellCheck={false}
       className={className}
+      placeholder={placeholder}
       aria-invalid={ariaInvalid}
       aria-describedby={ariaDescribedby}
       value={text}
