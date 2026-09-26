@@ -170,7 +170,7 @@ describe('npm run setup', () => {
     expect(existsSync(join(chezmoi.source, 'dot_claude', 'agents', 'claude-opus-high.md'))).toBe(true);
     expect(readFileSync(chezmoi.addLog, 'utf8')).toContain(join(home, '.claude-deepseek', 'env.vars'));
     expect(readFileSync(claude.addLog, 'utf8')).toBe(
-      `-s user deepseek-delegate -- ${join(ROOT, 'node_modules/.bin/tsx')} ${join(ROOT, 'src/server.ts')}\n`,
+      `-s user routemax -- ${join(ROOT, 'node_modules/.bin/tsx')} ${join(ROOT, 'src/server.ts')}\n`,
     );
   });
 
@@ -195,13 +195,13 @@ describe('npm run setup', () => {
     expect(runSetup(home, join(root, 'bin')).status).toBe(0);
     const second = runSetup(home, join(root, 'bin'));
     expect(second.status).toBe(0);
-    expect(second.stdout).toContain('deepseek-delegate is already registered');
+    expect(second.stdout).toContain('routemax is already registered');
     expect(readFileSync(claude.addLog, 'utf8').trim().split('\n')).toHaveLength(1);
   });
 
   it.each([
-    ['another command', { scope: 'user', command: '/old/tsx', args: ['/old/server.ts'] }, 'claude mcp remove deepseek-delegate -s user'],
-    ['one project only', { scope: 'local', command, args }, 'claude mcp remove deepseek-delegate -s local'],
+    ['another command', { scope: 'user', command: '/old/tsx', args: ['/old/server.ts'] }, 'claude mcp remove routemax -s user'],
+    ['one project only', { scope: 'local', command, args }, 'claude mcp remove routemax -s local'],
   ] as const)('leaves a registration for %s alone, says how to replace it and exits 1', (_case, entry, advice) => {
     const root = tempRoot();
     const home = join(root, 'home');
@@ -222,7 +222,7 @@ describe('npm run setup', () => {
     fakeClaude(root, null, false);
     const run = runSetup(home, join(root, 'bin'));
     expect(run.status).toBe(1);
-    expect(run.stderr).toContain('deepseek-delegate is registered but does not connect');
+    expect(run.stderr).toContain('routemax is registered but does not connect');
   });
 
   it('runs the claude binary that claudeBin in the routing config names', () => {
@@ -235,7 +235,7 @@ describe('npm run setup', () => {
     writeFileSync(configPath, JSON.stringify({ ...JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8')), claudeBin: claude.bin }));
     const run = runSetup(home, join(root, 'bin'), { DEEPSEEK_DELEGATE_CONFIG: configPath });
     expect(run.status).toBe(0);
-    expect(readFileSync(claude.addLog, 'utf8')).toContain('-s user deepseek-delegate');
+    expect(readFileSync(claude.addLog, 'utf8')).toContain('-s user routemax');
   });
 
   it('fails when ~/.claude/settings.json holds an ANTHROPIC_ variable', () => {

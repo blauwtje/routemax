@@ -46,7 +46,7 @@ const configPath = activeConfigPath();
 let config = loadConfig(configPath);
 let taskTypes = taskTypesOf(config);
 
-const server = new McpServer({ name: 'deepseek-delegate', version: '0.1.0' }, { instructions: INSTRUCTIONS });
+const server = new McpServer({ name: 'routemax', version: '0.1.0' }, { instructions: INSTRUCTIONS });
 
 const delegateTool = server.registerTool(
   TOOL_NAME,

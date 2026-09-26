@@ -85,9 +85,9 @@ describe('runDoctorChecks', () => {
   });
 
   it.each([
-    ['one project only', currentEntry({ scope: 'local' }), 'claude mcp remove deepseek-delegate -s local'],
+    ['one project only', currentEntry({ scope: 'local' }), 'claude mcp remove routemax -s local'],
     ['a server that does not connect', currentEntry({ connected: false }), 'does not connect'],
-    ['another command', currentEntry({ command: '/old/tsx' }), 'claude mcp remove deepseek-delegate -s user'],
+    ['another command', currentEntry({ command: '/old/tsx' }), 'claude mcp remove routemax -s user'],
   ])('reports a registration for %s', async (_case, entry, advice) => {
     const root = mkdtempSync(join(tmpdir(), 'routemax-doctor-'));
     fakeClaude(root, entry);

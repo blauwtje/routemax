@@ -86,7 +86,7 @@ async function checkRoutemaxCommand(deps: DoctorDeps): Promise<DoctorCheck> {
 async function checkServer(registration: ServerRegistration): Promise<DoctorCheck> {
   try {
     const problem = registrationProblem(await checkRegistration(registration));
-    if (!problem) return pass('MCP server', 'deepseek-delegate is registered for every project and connects.');
+    if (!problem) return pass('MCP server', 'routemax is registered for every project and connects.');
     return fix('MCP server', problem);
   } catch {
     return fix('MCP server', `${registration.claudeBin} is not on PATH, so the registration cannot be checked.`);

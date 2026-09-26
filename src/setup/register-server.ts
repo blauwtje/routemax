@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
-const SERVER_NAME = 'deepseek-delegate';
+const SERVER_NAME = 'routemax';
 // Labels `claude mcp get` prints (Claude Code 2.1.282); it exits 0 whether or not the server connects.
 const USER_SCOPE = /^\s*Scope:\s*User config\b/m;
 const CONNECTED = /^\s*Status:\s*\S*\s*Connected\s*$/m;

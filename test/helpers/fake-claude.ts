@@ -10,10 +10,10 @@ export interface McpGetEntry {
 
 const SCOPE_LABELS = { user: 'User config (available in all your projects)', local: 'Local config (private to you in this project)' };
 
-// The `claude mcp get deepseek-delegate` output of Claude Code 2.1.282.
+// The `claude mcp get routemax` output of Claude Code 2.1.282.
 export function mcpGetOutput(entry: McpGetEntry): string {
   return [
-    'deepseek-delegate:',
+    'routemax:',
     `  Scope: ${SCOPE_LABELS[entry.scope]}`,
     `  Status: ${entry.connected ? '✔ Connected' : '✘ Failed to connect'}`,
     '  Type: stdio',
@@ -21,7 +21,7 @@ export function mcpGetOutput(entry: McpGetEntry): string {
     `  Args: ${entry.args.join(' ')}`,
     '  Environment:',
     '',
-    `To remove this server, run: claude mcp remove deepseek-delegate -s ${entry.scope}`,
+    `To remove this server, run: claude mcp remove routemax -s ${entry.scope}`,
     '',
   ].join('\n');
 }
@@ -39,9 +39,9 @@ export function fakeClaude(root: string, registered: McpGetEntry | null = null, 
     [
       '#!/bin/sh',
       'case "$1 $2" in',
-      `  "mcp get") test -f "${state}" || { echo 'No MCP server named "deepseek-delegate".'; exit 1; }; cat "${state}" ;;`,
+      `  "mcp get") test -f "${state}" || { echo 'No MCP server named "routemax".'; exit 1; }; cat "${state}" ;;`,
       `  "mcp add") shift 2; echo "$@" >> "${addLog}"; shift 4; command="$1"; shift;`,
-      `    printf 'deepseek-delegate:\\n  Scope: ${SCOPE_LABELS.user}\\n  Status: ${status}\\n  Command: %s\\n  Args: %s\\n\\nTo remove this server, run: claude mcp remove deepseek-delegate -s user\\n' "$command" "$*" > "${state}" ;;`,
+      `    printf 'routemax:\\n  Scope: ${SCOPE_LABELS.user}\\n  Status: ${status}\\n  Command: %s\\n  Args: %s\\n\\nTo remove this server, run: claude mcp remove routemax -s user\\n' "$command" "$*" > "${state}" ;;`,
       '  *) exit 1 ;;',
       'esac',
       '',

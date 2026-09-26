@@ -1,6 +1,6 @@
 # routemax
 
-`deepseek-delegate` is an MCP server for the Claude Max session. Its one tool, `delegate`, runs a cheap task in a headless DeepSeek worker (`claude -p` behind the local repair-proxy) and returns a short summary, the changed files and the cost. The Max session's model, login and context stay as they are.
+`routemax` is an MCP server for the Claude Max session. Its one tool, `delegate`, runs a cheap task in a headless DeepSeek worker (`claude -p` behind the local repair-proxy) and returns a short summary, the changed files and the cost. The Max session's model, login and context stay as they are.
 
 ## Install
 
