@@ -5,7 +5,8 @@ import { formatUsd } from '@/lib/format';
 import { getTierColors } from '@/lib/tier-colors';
 import { cn } from '@/lib/utils';
 
-const TIER_ORDER = ['flash-low', 'flash-high', 'pro-high', 'claude'] as const;
+// The budget covers DeepSeek work only; Claude's API-equivalent cost is shown beside it.
+const BUDGET_TIERS = ['flash-low', 'flash-high', 'pro-high'] as const;
 
 export const PERIODS = [
   { key: 'week', label: 'This week' },
@@ -36,7 +37,7 @@ export function OverviewFigures({ budget, stats, period, onPeriodChange }: Overv
   }, []);
 
   const total = budget.totalUsd;
-  const segments = TIER_ORDER.map((tier) => {
+  const segments = BUDGET_TIERS.map((tier) => {
     const costUsd = stats.byTier[tier]?.costUsd ?? 0;
     const percent = total > 0 ? Math.min(100, (costUsd / total) * 100) : 0;
     return { tier, costUsd, percent };
@@ -57,6 +58,10 @@ export function OverviewFigures({ budget, stats, period, onPeriodChange }: Overv
           <span className="font-mono tabular-nums">{formatUsd(budget.leftUsd)}</span> left
         </p>
       </div>
+      <p className="text-xs text-muted-foreground">
+        Claude <span className="font-mono tabular-nums text-foreground">{formatUsd(stats.claude.costUsd)}</span> API-equivalent,
+        estimated from session logs and not counted in the budget
+      </p>
       <div
         role="img"
         aria-label={`Budget for the period: ${railSummary}, ${formatUsd(budget.leftUsd)} unfilled of ${formatUsd(total)} total`}

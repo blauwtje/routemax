@@ -10,6 +10,8 @@ const TIER_LABELS: Record<TierColorKey, string> = {
   claude: 'Claude',
 };
 
+const CLAUDE_COST_NOTE = 'API-equivalent';
+
 interface TierBreakdownProps {
   stats: PeriodStats;
   periodLabel: string;
@@ -21,7 +23,7 @@ export function TierBreakdown({ stats, periodLabel, dailyTierSpend }: TierBreakd
   const rows = TIER_ORDER.map((tier) => {
     const entry = stats.byTier[tier];
     const calls = entry?.calls ?? 0;
-    const costUsd = entry?.costUsd ?? 0;
+    const costUsd = tier === 'claude' ? stats.claude.costUsd : (entry?.costUsd ?? 0);
     const share = stats.calls > 0 ? Math.round((calls / stats.calls) * 100) : 0;
     return { tier, calls, costUsd, share };
   });
@@ -40,6 +42,7 @@ export function TierBreakdown({ stats, periodLabel, dailyTierSpend }: TierBreakd
             calls={calls}
             costUsd={costUsd}
             share={share}
+            costNote={tier === 'claude' ? CLAUDE_COST_NOTE : undefined}
             sparklineValues={dailyTierSpend[tier]}
             index={index}
           />

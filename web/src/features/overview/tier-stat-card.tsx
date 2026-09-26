@@ -12,6 +12,7 @@ interface TierStatCardProps {
   label: string;
   calls: number;
   costUsd: number;
+  costNote?: string;
   share: number;
   sparklineValues: number[];
   index: number;
@@ -25,7 +26,7 @@ interface TierStatCardProps {
  * can never leave a card invisible; figures and the rise both render at final state under
  * prefers-reduced-motion.
  */
-export function TierStatCard({ tier, label, calls, costUsd, share, sparklineValues, index }: TierStatCardProps) {
+export function TierStatCard({ tier, label, calls, costUsd, costNote, share, sparklineValues, index }: TierStatCardProps) {
   const colors = getTierColors(tier);
   const spend = useCountUp(costUsd, 700);
   const callsDisplay = Math.round(useCountUp(calls, 700));
@@ -44,8 +45,18 @@ export function TierStatCard({ tier, label, calls, costUsd, share, sparklineValu
         className="pointer-events-none absolute inset-0 opacity-0 shadow-[0_0_32px_-8px_currentColor] transition-opacity duration-200 ease-out-expo group-hover:opacity-60"
       />
       <TierChip tier={tier} label={label} />
-      <p className="font-mono text-[32px] leading-none font-medium tracking-[-0.02em] tabular-nums text-foreground">
-        {formatUsd(spend)}
+      <p className="flex items-baseline gap-2">
+        <span className="font-mono text-[32px] leading-none font-medium tracking-[-0.02em] tabular-nums text-foreground">
+          {formatUsd(spend)}
+        </span>
+        {costNote !== undefined && (
+          <span
+            className="text-xs text-muted-foreground"
+            title="Estimated from Claude Code's session logs on this Mac at Anthropic list prices; not your actual bill and not counted in the budget."
+          >
+            {costNote}
+          </span>
+        )}
       </p>
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <span className="font-mono tabular-nums">{callsDisplay} calls</span>

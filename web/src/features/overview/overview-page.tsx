@@ -18,7 +18,7 @@ export function OverviewPage() {
   const { state: statsState } = usePoll(loadStats);
   const { state: doctorState, refresh: refreshDoctor } = usePoll(loadDoctor);
   const [period, setPeriod] = useState<Period>('week');
-  const dailyTierSpend = useDailyTierSpend();
+  const dailyTierSpend = useDailyTierSpend(statsState.kind === 'loaded' ? statsState.value.claudeByDay : undefined);
 
   return (
     <div className="overview-page flex flex-col gap-8">
