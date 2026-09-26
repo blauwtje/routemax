@@ -1,8 +1,11 @@
 import type { ComponentType } from 'react';
 import { AppShell } from '@/components/app-shell';
+import { OverviewPage } from '@/features/overview/overview-page';
 import { type Section, useSection } from '@/hooks/use-section';
 
-const SECTION_PAGES: Partial<Record<Section, ComponentType>> = {};
+const SECTION_PAGES: Partial<Record<Section, ComponentType>> = {
+  overview: OverviewPage,
+};
 
 export function App() {
   const [section, navigate] = useSection();
