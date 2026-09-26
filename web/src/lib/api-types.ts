@@ -26,10 +26,22 @@ export interface CallsAndCost {
   costUsd: number;
 }
 
+export interface ClaudeModelTally {
+  costUsd: number | null;
+  unpricedTokens: number;
+}
+
+export interface ClaudeTally {
+  costUsd: number;
+  unpricedTokens: number;
+  byModel: Record<string, ClaudeModelTally>;
+}
+
 export interface PeriodStats extends CallsAndCost {
   byTier: Record<string, CallsAndCost>;
   byModel: Record<string, CallsAndCost>;
   escalations: Record<string, number>;
+  claude: ClaudeTally;
 }
 
 export interface StatsResponse {
@@ -37,6 +49,7 @@ export interface StatsResponse {
   spendByProvider: Record<string, number>;
   today: PeriodStats;
   week: PeriodStats;
+  claudeByDay: Record<string, number>;
 }
 
 export type DecisionStatus = 'done' | 'escalate' | 'use_claude' | 'refused' | 'disabled';

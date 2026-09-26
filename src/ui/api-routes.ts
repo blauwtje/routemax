@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { readClaudeUsageStore } from '../claude-usage/claude-usage-store';
 import { configSchema, effortSchema, formatIssues, TIER_ORDER } from '../config/config-schema';
 import { readStoredConfig, restorePrevious, saveConfig, type StoreOutcome } from '../config/config-store';
 import { loadConfig } from '../config/delegate-config';
-import { previousConfigPath, providerTestsPath } from '../config/routemax-paths';
+import { claudeUsagePath, previousConfigPath, providerTestsPath } from '../config/routemax-paths';
 import { syncChezmoi } from '../config/sync-chezmoi';
 import { decisionLogPath } from '../decision-log/decision-log';
 import type { DelegateDeps } from '../delegate/delegate';
@@ -96,7 +97,10 @@ function decisionRoutes(deps: UiDeps): ApiRoute[] {
     {
       method: 'GET',
       pattern: /^\/api\/stats$/,
-      handle: async () => ok(decisionStats(await readDecisions(logPath), loadConfig(deps.configPath).budget.totalUsd, new Date())),
+      handle: async () => {
+        const claudeDays = readClaudeUsageStore(claudeUsagePath(deps.homeDir)).days;
+        return ok(decisionStats(await readDecisions(logPath), loadConfig(deps.configPath).budget.totalUsd, new Date(), claudeDays));
+      },
     },
   ];
 }
