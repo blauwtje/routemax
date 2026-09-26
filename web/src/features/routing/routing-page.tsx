@@ -6,6 +6,8 @@ import { usePoll } from '@/hooks/use-poll';
 import type { ProviderTestsResponse } from '@/lib/api-types';
 import { api } from '@/lib/browser-api';
 import { useWatch } from 'react-hook-form';
+import { ClaudeAgentsEditor } from './claude-agents-editor';
+import { EffortMapEditor } from './effort-map-editor';
 import { RuleEditor } from './rule-editor';
 import { TierEditor } from './tier-editor';
 import { tierWarnings } from './tier-warnings';
@@ -35,6 +37,8 @@ export function RoutingPage() {
       {ready && (
         <>
           <TierEditor form={form} />
+          <EffortMapEditor form={form} />
+          <ClaudeAgentsEditor form={form} />
           <RuleEditor form={form} />
           <SaveBar
             saveState={saveState}
