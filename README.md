@@ -14,7 +14,7 @@ The server's instructions tell the Max session to hand search, summaries, tests,
 
 ## The page
 
-Run `routemax ui` in any terminal. It opens a local page in your browser and runs until Ctrl-C.
+Run `routemax ui` in any terminal. It opens a local page in your browser and runs until Ctrl-C. When a file under `web/` changed since the last build, it runs `npm run build:web` first.
 
 - Overview: the switch that turns `delegate` on and off in open sessions, spend per provider and the doctor lines.
 - History: every `delegate` call with its tier, provider, cost and status.
