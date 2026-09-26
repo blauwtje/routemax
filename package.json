@@ -2,6 +2,7 @@
   "name": "routemax",
   "version": "0.1.0",
   "private": true,
+  "bin": { "routemax": "bin/routemax.mjs" },
   "type": "module",
   "engines": { "node": ">=20.12" },
   "workspaces": ["web"],
