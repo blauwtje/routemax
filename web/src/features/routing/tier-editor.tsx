@@ -14,7 +14,7 @@ export function TierEditor({ form }: { form: ConfigForm }) {
   const modelsOf = (providerId: string) => (Object.hasOwn(providers, providerId) ? Object.keys(providers[providerId].models) : []);
 
   return (
-    <SettingsGroup className="border-t-0 pt-0" title="Tiers" description="Claude tasks go to the agents below instead.">
+    <SettingsGroup className="border-t-0 pt-0" title="Tiers" description="Where each tier sends a task. Tasks that end on Claude use the Claude agents under Advanced.">
       <Table className="tier-editor-table">
         <TableHeader>
           <TableRow>

@@ -1,13 +1,16 @@
 import { Fragment } from 'react';
+import { AdvancedSection } from '@/components/advanced-section';
 import { SaveBar } from '@/components/save-bar';
+import { SettingsGroup } from '@/components/settings-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
-import { useConfigForm } from '@/hooks/use-config-form';
+import { Switch } from '@/components/ui/switch';
+import { useConfigForm, type ConfigForm } from '@/hooks/use-config-form';
 import { usePoll } from '@/hooks/use-poll';
 import type { ProviderTestsResponse } from '@/lib/api-types';
 import { api } from '@/lib/browser-api';
 import { getTierColors } from '@/lib/tier-colors';
-import { useWatch } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 import { TIER_ORDER } from '../../../../src/config/config-schema';
 import { ClaudeAgentsEditor } from './claude-agents-editor';
 import { EffortMapEditor } from './effort-map-editor';
@@ -66,6 +69,30 @@ function TierLadder() {
   );
 }
 
+function SmartRoutingSwitch({ form }: { form: ConfigForm }) {
+  return (
+    <SettingsGroup
+      className="border-t-0 pt-0"
+      title="Smart routing"
+      description="Scores each task's text to pick its tier, model and effort. Only an unclear task gets a paid check by the cheapest DeepSeek model. Rules that keep a task on Claude still win. Off: the rules decide alone."
+    >
+      <Controller
+        control={form.control}
+        name="smartRouting.enabled"
+        render={({ field }) => (
+          <div className="smart-routing-toggle flex items-center justify-between gap-4 rounded-md border border-border bg-well px-4 py-3 shadow-well">
+            <span className="flex flex-col gap-0.5">
+              <span className="font-medium">Route by task text</span>
+              <span className="font-mono text-xs text-muted-foreground">{field.value ? 'on: score, then check if unclear' : 'off: rules only'}</span>
+            </span>
+            <Switch checked={field.value} onCheckedChange={(checked) => field.onChange(checked)} aria-label="Smart routing" />
+          </div>
+        )}
+      />
+    </SettingsGroup>
+  );
+}
+
 function RoutingPanel({ index, children }: { index: number; children: React.ReactNode }) {
   return (
     <Card className="routing-panel" style={{ '--panel-index': index } as React.CSSProperties}>
@@ -91,23 +118,24 @@ export function RoutingPage() {
       {ready && (
         <>
           <RoutingPanel index={0}>
-            <TierLadder />
+            <div className="flex flex-col gap-8">
+              <TierLadder />
+              <TierEditor form={form} />
+            </div>
           </RoutingPanel>
           <RoutingPanel index={1}>
-            <TierEditor form={form} />
+            <SmartRoutingSwitch form={form} />
           </RoutingPanel>
           <RoutingPanel index={2}>
-            <EffortMapEditor form={form} />
-          </RoutingPanel>
-          <RoutingPanel index={3}>
-            <ClaudeAgentsEditor form={form} />
-          </RoutingPanel>
-          <RoutingPanel index={4}>
-            <RuleEditor form={form} />
-          </RoutingPanel>
-          <RoutingPanel index={5}>
             <RoutePreview form={form} />
           </RoutingPanel>
+          <AdvancedSection summary="Rules, the effort map and Claude agents">
+            <div className="flex flex-col gap-10">
+              <RuleEditor form={form} />
+              <EffortMapEditor form={form} />
+              <ClaudeAgentsEditor form={form} />
+            </div>
+          </AdvancedSection>
           <SaveBar
             saveState={saveState}
             dirty={form.formState.isDirty}
