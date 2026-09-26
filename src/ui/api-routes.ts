@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { readClaudeUsageStore } from '../claude-usage/claude-usage-store';
+import { readClaudeUsageStore, recordClaudeUsage } from '../claude-usage/claude-usage-store';
+import { defaultProjectsDirs, readClaudeUsage } from '../claude-usage/read-claude-usage';
 import { configSchema, effortSchema, formatIssues, TIER_ORDER } from '../config/config-schema';
 import { readStoredConfig, restorePrevious, saveConfig, type StoreOutcome } from '../config/config-store';
 import { loadConfig } from '../config/delegate-config';
@@ -22,6 +23,8 @@ export interface UiDeps {
   chezmoiBin: string;
   doctorDeps: () => DoctorDeps;
   delegateDeps: () => DelegateDeps;
+  // Where Claude Code transcripts live; defaults to the directories under homeDir.
+  claudeProjectsDirs?: string[];
 }
 
 const switchBodySchema = z.object({ enabled: z.boolean() });
@@ -92,13 +95,16 @@ function configRoutes(deps: UiDeps): ApiRoute[] {
 
 function decisionRoutes(deps: UiDeps): ApiRoute[] {
   const logPath = decisionLogPath(deps.homeDir);
+  const usagePath = claudeUsagePath(deps.homeDir);
+  const projectsDirs = deps.claudeProjectsDirs ?? defaultProjectsDirs(deps.homeDir, process.env);
   return [
     { method: 'GET', pattern: /^\/api\/history$/, handle: async () => ok({ records: await readDecisions(logPath) }) },
     {
       method: 'GET',
       pattern: /^\/api\/stats$/,
       handle: async () => {
-        const claudeDays = readClaudeUsageStore(claudeUsagePath(deps.homeDir)).days;
+        recordClaudeUsage(usagePath, readClaudeUsage(projectsDirs));
+        const claudeDays = readClaudeUsageStore(usagePath).days;
         return ok(decisionStats(await readDecisions(logPath), loadConfig(deps.configPath).budget.totalUsd, new Date(), claudeDays));
       },
     },

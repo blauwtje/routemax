@@ -106,19 +106,28 @@ export async function smartRoute(config: DelegateConfig, request: PlanRequest, d
   if (!score.confident) {
     const flashLow = config.tiers['flash-low'];
     const provider = config.providers[flashLow.provider];
-    const apiKey = await deps.readApiKey(provider.keychainService);
-    const checkResult = await checkTask(
-      request.task,
-      { baseUrl: provider.baseUrl, apiKey, model: flashLow.model, price: provider.models[flashLow.model] },
-      config.smartRouting.checkTimeoutMs,
-      deps.fetchImpl,
-    );
+    let checkResult: Awaited<ReturnType<typeof checkTask>> = null;
+    let checkError: string | null = null;
+    try {
+      const apiKey = await deps.readApiKey(provider.keychainService);
+      checkResult = await checkTask(
+        request.task,
+        { baseUrl: provider.baseUrl, apiKey, model: flashLow.model, price: provider.models[flashLow.model] },
+        config.smartRouting.checkTimeoutMs,
+        deps.fetchImpl,
+      );
+    } catch (error) {
+      // A missing key or a failed check must not fail the task: the score's result stands.
+      checkError = (error as Error).message;
+    }
     if (checkResult) {
       smartTier = checkResult.tier;
       smartEffort = checkResult.effort;
       checkCostUsd = checkResult.costUsd;
       routedBy = 'check';
       routeReason = `check classified the task as ${checkResult.tier}/${checkResult.effort}`;
+    } else if (checkError) {
+      routeReason = `score was not confident and the check could not run: ${checkError}`;
     } else {
       routeReason = 'score was not confident and the check gave no answer';
     }

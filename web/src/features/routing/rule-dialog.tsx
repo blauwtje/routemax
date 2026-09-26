@@ -18,16 +18,24 @@ export const RULE_LIST_FIELDS = [
 
 interface RuleDialogProps {
   form: ConfigForm;
-  /** Index into the form's `rules` array; null keeps the dialog closed. */
+  open: boolean;
+  /** Index into the form's `rules` array; stays set until the close finishes so the content stays mounted. */
   index: number | null;
   onClose: () => void;
+  /** Runs once the close animation ends; the caller clears the index here. */
+  onCloseComplete: () => void;
   onRemove: (index: number) => void;
 }
 
 // Edits write straight into the config form, so the page's SaveBar saves them with everything else.
-export function RuleDialog({ form, index, onClose, onRemove }: RuleDialogProps) {
+// The content stays mounted through the close so Base UI can return focus to the row that opened it.
+export function RuleDialog({ form, open, index, onClose, onCloseComplete, onRemove }: RuleDialogProps) {
   return (
-    <Dialog open={index !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && onClose()}
+      onOpenChangeComplete={(nextOpen) => !nextOpen && onCloseComplete()}
+    >
       {index !== null && (
         <DialogContent className="rule-dialog gap-5 p-5 sm:max-w-xl sm:p-6">
           <RuleFields form={form} index={index} />

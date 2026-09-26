@@ -129,6 +129,23 @@ describe('delegate', () => {
     expect(result.status === 'done' && record.costUsd).toBeGreaterThan(result.status === 'done' ? result.costUsd : Infinity);
   });
 
+  it("attributes a Claude hand-off after a paid check to the check's provider", async () => {
+    const responseBody = {
+      content: [{ type: 'text', text: '{"tier":"claude","effort":"high"}' }],
+      usage: { input_tokens: 100, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    };
+    const { deps, home, recordPath } = harness({
+      config: { smartRouting: { enabled: true, checkTimeoutMs: 3000 } },
+      fetchImpl: (async () => new Response(JSON.stringify(responseBody), { status: 200 })) as DelegateDeps['fetchImpl'],
+    });
+    const result = await delegate(request({ task: 'do the thing', taskType: 'other' }), deps);
+    expect(result.status).toBe('use_claude');
+    expect(existsSync(recordPath)).toBe(false);
+    const record = logLines(home)[0];
+    expect(record).toMatchObject({ status: 'use_claude', finalTier: 'claude', routedBy: 'check', provider: deps.config.tiers['flash-low'].provider });
+    expect(record.costUsd).toBeGreaterThan(0);
+  });
+
   it('raises the worker effort for a higher Claude effort', async () => {
     const { deps } = harness();
     expect(await delegate(request({ taskType: 'search', claudeEffort: 'xhigh' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'max' });

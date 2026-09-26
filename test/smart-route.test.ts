@@ -68,4 +68,17 @@ describe('smartRoute', () => {
     expect(plan.routedBy).toBe('score');
     expect(plan.checkCostUsd).toBe(0);
   });
+
+  it('keeps the score result when the key lookup throws', async () => {
+    const routeDeps = deps({
+      readApiKey: vi.fn(async () => {
+        throw new Error('DeepSeek API key not found in Keychain (service deepseek_api_key).');
+      }),
+    });
+    const plan = await smartRoute(shipped, request({ task: 'do the thing', taskType: 'other' }), routeDeps);
+    expect(plan.routedBy).toBe('score');
+    expect(plan.checkCostUsd).toBe(0);
+    expect(plan.routeReason).toContain('DeepSeek API key not found in Keychain');
+    expect(routeDeps.fetchImpl).not.toHaveBeenCalled();
+  });
 });

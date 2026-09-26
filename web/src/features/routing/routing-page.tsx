@@ -69,6 +69,8 @@ function TierLadder() {
   );
 }
 
+const SMART_ROUTING_DEFAULT = { enabled: true, checkTimeoutMs: 3000 };
+
 function SmartRoutingSwitch({ form }: { form: ConfigForm }) {
   return (
     <SettingsGroup
@@ -78,16 +80,24 @@ function SmartRoutingSwitch({ form }: { form: ConfigForm }) {
     >
       <Controller
         control={form.control}
-        name="smartRouting.enabled"
-        render={({ field }) => (
-          <div className="smart-routing-toggle flex items-center justify-between gap-4 rounded-md border border-border bg-well px-4 py-3 shadow-well">
-            <span className="flex flex-col gap-0.5">
-              <span className="font-medium">Route by task text</span>
-              <span className="font-mono text-xs text-muted-foreground">{field.value ? 'on: score, then check if unclear' : 'off: rules only'}</span>
-            </span>
-            <Switch checked={field.value} onCheckedChange={(checked) => field.onChange(checked)} aria-label="Smart routing" />
-          </div>
-        )}
+        name="smartRouting"
+        render={({ field }) => {
+          // A config saved before smart routing existed has no object; the schema's default applies.
+          const smartRouting = field.value ?? SMART_ROUTING_DEFAULT;
+          return (
+            <div className="smart-routing-toggle flex items-center justify-between gap-4 rounded-md border border-border bg-well px-4 py-3 shadow-well">
+              <span className="flex flex-col gap-0.5">
+                <span className="font-medium">Route by task text</span>
+                <span className="font-mono text-xs text-muted-foreground">{smartRouting.enabled ? 'on: score, then check if unclear' : 'off: rules only'}</span>
+              </span>
+              <Switch
+                checked={smartRouting.enabled}
+                onCheckedChange={(checked) => field.onChange({ ...smartRouting, enabled: checked })}
+                aria-label="Smart routing"
+              />
+            </div>
+          );
+        }}
       />
     </SettingsGroup>
   );

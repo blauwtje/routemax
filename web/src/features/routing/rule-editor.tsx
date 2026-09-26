@@ -40,13 +40,21 @@ export function RuleEditor({ form }: { form: ConfigForm }) {
   const watchedRules = useWatch({ control: form.control, name: 'rules' });
   const ruleErrors = form.formState.errors.rules;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  function editRule(index: number) {
+    setEditingIndex(index);
+    setDialogOpen(true);
+  }
 
   function addRule() {
     append({ id: '', taskTypes: [], keywords: [], keywordExemptTaskTypes: [], flags: [], tier: 'flash-low' });
-    setEditingIndex(fields.length);
+    editRule(fields.length);
   }
 
+  // The removed row has no trigger to refocus, and its index no longer exists: unmount at once.
   function removeRule(index: number) {
+    setDialogOpen(false);
     setEditingIndex(null);
     remove(index);
   }
@@ -77,7 +85,7 @@ export function RuleEditor({ form }: { form: ConfigForm }) {
               <TableRow
                 key={field.fieldKey}
                 className="rule-editor-row cursor-pointer"
-                onClick={() => setEditingIndex(index)}
+                onClick={() => editRule(index)}
               >
                 <TableCell className="font-mono text-muted-foreground tabular-nums">{String(index + 1).padStart(2, '0')}</TableCell>
                 <TableCell>
@@ -90,7 +98,7 @@ export function RuleEditor({ form }: { form: ConfigForm }) {
                     aria-haspopup="dialog"
                     onClick={(event) => {
                       event.stopPropagation();
-                      setEditingIndex(index);
+                      editRule(index);
                     }}
                   >
                     {rule.id || 'Untitled rule'}
@@ -138,7 +146,14 @@ export function RuleEditor({ form }: { form: ConfigForm }) {
         <PlusIcon aria-hidden="true" />
         Add rule
       </Button>
-      <RuleDialog form={form} index={editingIndex} onClose={() => setEditingIndex(null)} onRemove={removeRule} />
+      <RuleDialog
+        form={form}
+        open={dialogOpen}
+        index={editingIndex}
+        onClose={() => setDialogOpen(false)}
+        onCloseComplete={() => setEditingIndex(null)}
+        onRemove={removeRule}
+      />
     </SettingsGroup>
   );
 }

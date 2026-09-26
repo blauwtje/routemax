@@ -41,7 +41,7 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
     requestedTier: request.requestedTier,
     finalTier: plan.tier,
     raisedBy: plan.raisedBy,
-    provider: plan.tier === 'claude' ? null : plan.provider,
+    provider: decisionProvider(deps.config, plan),
     routedBy: plan.routedBy,
     routeReason: plan.routeReason,
   };
@@ -53,6 +53,13 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
   const refusal = await budgetRefusal(logPath, deps.config.budget);
   if (refusal) return refuse(logPath, base, refusal, startedAt);
   return runDeepseekTask(request, plan, base, deps, startedAt);
+}
+
+// A Claude hand-off after a paid check still spent money on the check's provider;
+// naming it keeps per-provider spend equal to total spend.
+function decisionProvider(config: DelegateConfig, plan: SmartRoutePlan): string | null {
+  if (plan.tier !== 'claude') return plan.provider;
+  return plan.checkCostUsd > 0 ? config.tiers['flash-low'].provider : null;
 }
 
 function claudeHandoff(config: DelegateConfig, agentName: string): ClaudeHandoff {

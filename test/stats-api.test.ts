@@ -12,6 +12,7 @@ import { testUiDeps } from './helpers/ui-deps';
 
 let server: UiServer;
 let configPath = '';
+let usagePath = '';
 
 const line = (fields: Record<string, unknown>) =>
   JSON.stringify({
@@ -56,20 +57,22 @@ beforeAll(async () => {
       '',
     ].join('\n'),
   );
-  const claudeStore: ClaudeUsageStore = {
-    days: {
-      [todayKey()]: {
-        'claude-sonnet-5': {
-          usage: { inputTokens: 1_000_000, outputTokens: 0, cacheReadTokens: 0, cacheCreation5mTokens: 0, cacheCreation1hTokens: 0 },
-          costUsd: 2,
-        },
-      },
+  const projectsDir = mkdtempSync(join(tmpdir(), 'routemax-claude-projects-'));
+  const transcriptLine = {
+    type: 'assistant',
+    message: {
+      id: 'msg_stats',
+      model: 'claude-sonnet-5',
+      content: [],
+      usage: { input_tokens: 1_000_000, output_tokens: 0, cache_read_input_tokens: 0, cache_creation: { ephemeral_5m_input_tokens: 0, ephemeral_1h_input_tokens: 0 } },
     },
+    requestId: 'req_stats',
+    timestamp: new Date().toISOString(),
   };
-  const usagePath = claudeUsagePath(homeDir);
-  mkdirSync(dirname(usagePath), { recursive: true });
-  writeFileSync(usagePath, JSON.stringify(claudeStore));
-  server = await startUiServer(mkdtempSync(join(tmpdir(), 'routemax-dist-')), apiRoutes(deps));
+  mkdirSync(join(projectsDir, 'project'), { recursive: true });
+  writeFileSync(join(projectsDir, 'project', 'session.jsonl'), `${JSON.stringify(transcriptLine)}\n`);
+  usagePath = claudeUsagePath(homeDir);
+  server = await startUiServer(mkdtempSync(join(tmpdir(), 'routemax-dist-')), apiRoutes({ ...deps, claudeProjectsDirs: [projectsDir] }));
 });
 
 afterAll(() => server.close());
@@ -107,6 +110,8 @@ describe('history and stats API', () => {
     expect(stats.today.claude.costUsd).toBe(2);
     expect(stats.today.byTier.claude).toEqual({ calls: 1, costUsd: 2 });
     expect(stats.claudeByDay[todayKey()]).toBe(2);
+    const store = JSON.parse(readFileSync(usagePath, 'utf8')) as ClaudeUsageStore;
+    expect(store.days[todayKey()]['claude-sonnet-5'].costUsd).toBe(2);
     expect(Object.keys(stats.claudeByDay)).toHaveLength(7);
     // budget.spentUsd stays deepseek-only: the claude cost never adds to it.
     expect(stats.budget.spentUsd).toBe(0.75);

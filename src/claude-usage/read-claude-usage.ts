@@ -85,6 +85,16 @@ function toNumber(value: unknown): number {
   return typeof value === 'number' ? value : 0;
 }
 
+// Same local Y-M-D key as decision-stats.ts dayKey, so Claude use lands on the
+// user's calendar day rather than the UTC one.
+function localDayKey(timestamp: string): string {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function parseLine(rawLine: string): DedupedLine | null {
   const trimmed = rawLine.trim();
   if (!trimmed) return null;
@@ -108,7 +118,7 @@ function parseLine(rawLine: string): DedupedLine | null {
 
   return {
     key: `${record.message.id}\u0000${record.requestId ?? ''}`,
-    day: record.timestamp.slice(0, 10),
+    day: localDayKey(record.timestamp),
     model: record.message.model,
     outputTokens: claudeUsage.outputTokens,
     usage: claudeUsage,

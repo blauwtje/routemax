@@ -48,6 +48,17 @@ describe('readClaudeUsage', () => {
     expect(serialized).not.toContain('next day work');
   });
 
+  it('keys a day by the local calendar date, not the UTC date', () => {
+    const workDir = mkdtempSync(join(tmpdir(), 'claude-usage-local-day-'));
+    const justAfterLocalMidnight = new Date(2026, 8, 23, 0, 30).toISOString();
+    writeFileSync(
+      join(workDir, 'session.jsonl'),
+      `{"type":"assistant","message":{"id":"msg_local","model":"claude-sonnet-4-5","content":[],"usage":{"input_tokens":1,"output_tokens":2}},"requestId":"req_local","timestamp":"${justAfterLocalMidnight}"}\n`,
+    );
+
+    expect(Object.keys(readClaudeUsage([workDir]))).toEqual(['2026-09-23']);
+  });
+
   it('skips a directory that does not exist', () => {
     expect(readClaudeUsage([join(fixturesDir, 'missing')])).toEqual({});
   });
@@ -57,7 +68,7 @@ describe('readClaudeUsage', () => {
       const workDir = mkdtempSync(join(tmpdir(), 'claude-usage-cache-'));
       const filePath = join(workDir, 'session.jsonl');
       const line = (outputTokens: number) =>
-        `{"type":"assistant","message":{"id":"msg_c","type":"message","role":"assistant","model":"claude-sonnet-4-5","content":[],"usage":{"input_tokens":10,"output_tokens":${outputTokens},"cache_read_input_tokens":0,"cache_creation_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0}}},"requestId":"req_c","timestamp":"2026-09-22T00:00:00.000Z","session_id":"sess-c","uuid":"uuid-c"}\n`;
+        `{"type":"assistant","message":{"id":"msg_c","type":"message","role":"assistant","model":"claude-sonnet-4-5","content":[],"usage":{"input_tokens":10,"output_tokens":${outputTokens},"cache_read_input_tokens":0,"cache_creation_input_tokens":0,"cache_creation":{"ephemeral_5m_input_tokens":0,"ephemeral_1h_input_tokens":0}}},"requestId":"req_c","timestamp":"2026-09-22T12:00:00.000Z","session_id":"sess-c","uuid":"uuid-c"}\n`;
 
       const fixedMtime = new Date('2026-09-22T00:00:00.000Z');
       writeFileSync(filePath, line(10));

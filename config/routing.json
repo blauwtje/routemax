@@ -48,6 +48,7 @@
   "retryThreshold": null,
   "projects": {},
   "exploreRedirect": false,
+  "smartRouting": { "enabled": true, "checkTimeoutMs": 3000 },
   "claudeBin": "claude",
   "proxy": {
     "dir": "/Users/thomash/Documents/Code/personal/tools/deepseek-repair-proxy",
