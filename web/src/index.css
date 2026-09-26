@@ -332,6 +332,11 @@ html[data-router="off"] {
     background: color-mix(in oklch, var(--tier-flash-high) 30%, transparent);
     color: var(--foreground);
     }
+  /* controls read as controls, not text: buttons, tabs, switches, menu items, disclosure
+     summaries and nav links resist accidental text selection; inputs and tables stay selectable */
+  button, [role="button"], [role="tab"], [role="switch"], [role="menuitem"], summary, nav a {
+    user-select: none;
+    }
   :root {
     accent-color: var(--tier-flash-low);
     caret-color: var(--tier-flash-low);
