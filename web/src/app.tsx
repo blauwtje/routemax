@@ -4,6 +4,7 @@ import { HistoryPage } from '@/features/history/history-page';
 import { OverviewPage } from '@/features/overview/overview-page';
 import { ProvidersPage } from '@/features/providers/providers-page';
 import { RoutingPage } from '@/features/routing/routing-page';
+import { SettingsPage } from '@/features/settings/settings-page';
 import { type Section, useSection } from '@/hooks/use-section';
 
 const SECTION_PAGES: Partial<Record<Section, ComponentType>> = {
@@ -11,6 +12,7 @@ const SECTION_PAGES: Partial<Record<Section, ComponentType>> = {
   history: HistoryPage,
   routing: RoutingPage,
   providers: ProvidersPage,
+  settings: SettingsPage,
 };
 
 export function App() {
