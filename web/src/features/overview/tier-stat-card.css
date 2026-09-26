@@ -1,0 +1,22 @@
+/* Tier stat wall entrance: a pure CSS keyframe, not a requestAnimationFrame-driven transition,
+   so a missed or throttled frame can never leave the wall stuck at opacity 0 (repair: stat wall). */
+@keyframes tier-stat-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.tier-stat-card {
+  animation: tier-stat-card-enter var(--dur-panel) var(--ease-out-expo) backwards;
+  animation-delay: var(--tier-card-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* same specificity as the base rule above, so this wins by source order regardless of the
+     global reduced-motion pass in index.css (a universal selector there can't out-specify
+     the class selector here) */
+  .tier-stat-card {
+    animation-duration: 0.001ms;
+  }
+}

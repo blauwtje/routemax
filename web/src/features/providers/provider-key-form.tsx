@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { KeyRoundIcon } from 'lucide-react';
+import { Field } from '@/components/field';
+import { SettingsGroup } from '@/components/settings-group';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { api } from '@/lib/browser-api';
 import { describeError } from '@/lib/format';
 
@@ -31,22 +32,24 @@ export function ProviderKeyForm({ providerId, present, onStored }: ProviderKeyFo
   }
 
   return (
-    <form className="provider-key-form flex min-w-0 flex-col gap-1.5" onSubmit={(event) => void submit(event)}>
-      <Label htmlFor={`key-${providerId}`}>API key</Label>
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span aria-hidden="true" className={`size-2 shrink-0 rounded-full ${present ? 'bg-status-done' : 'bg-status-disabled'}`} />
-        {present === undefined ? 'Checking the Keychain…' : present ? 'A key is stored in the Keychain.' : 'No key in the Keychain yet.'}
-      </p>
-      <div className="flex gap-2">
-        <Input id={`key-${providerId}`} name="key" type="password" autoComplete="off" className="min-w-0" />
-        <Button type="submit" variant="outline">
-          <KeyRoundIcon aria-hidden="true" />
-          Store key
-        </Button>
-      </div>
-      <p className="text-sm empty:hidden" aria-live="polite">
-        {message}
-      </p>
-    </form>
+    <SettingsGroup title="API key">
+      <form className="provider-key-form flex flex-col gap-3" onSubmit={(event) => void submit(event)}>
+        <p className={present ? 'text-sm font-medium text-status-positive' : 'text-sm font-medium text-muted-foreground'}>
+          {present === undefined ? 'Checking the Keychain…' : present ? 'Present' : 'Absent'}
+        </p>
+        <div className="flex flex-col gap-2">
+          <Field label="New key" htmlFor={`key-${providerId}`} className="w-full min-w-0">
+            <Input id={`key-${providerId}`} name="key" type="password" autoComplete="off" />
+          </Field>
+          <Button type="submit" variant="outline" className="self-start">
+            <KeyRoundIcon aria-hidden="true" />
+            Store key
+          </Button>
+        </div>
+        <p className="text-sm empty:hidden" aria-live="polite">
+          {message}
+        </p>
+      </form>
+    </SettingsGroup>
   );
 }

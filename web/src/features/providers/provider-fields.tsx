@@ -1,87 +1,135 @@
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
+import { Field } from '@/components/field';
+import { SettingsGroup } from '@/components/settings-group';
+import { StatusIndicator } from '@/components/status-indicator';
+import { ToggleChip } from '@/components/toggle-chip';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { EFFORT_ORDER } from '../../../../src/config/config-schema';
 
-const TEXT_FIELDS = [
-  ['name', 'Name'],
-  ['baseUrl', 'Base URL'],
-  ['keychainService', 'Keychain service'],
-] as const;
+interface ProviderSummaryProps {
+  form: ConfigForm;
+  providerId: string;
+  keyPresent: boolean | undefined;
+  modelCount: number;
+}
 
-export function ProviderFields({ form, providerId }: { form: ConfigForm; providerId: string }) {
-  const field = (name: string) => `provider-${providerId}-${name}`;
+// The shared StatusIndicator (web/src/components/status-indicator.tsx) renders a dot + word and
+// now covers this header's "enabled"/"disabled" and "present"/"absent" states directly.
+export function ProviderSummary({ form, providerId, keyPresent, modelCount }: ProviderSummaryProps) {
+  const name = useWatch({ control: form.control, name: `providers.${providerId}.name` });
   return (
-    <div className="provider-fields flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <h2 id={field('title')} className="font-heading text-lg font-bold tracking-tight">
-          {providerId}
-        </h2>
+    <summary
+      id={`provider-${providerId}-title`}
+      className="provider-summary flex cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6"
+    >
+      <span className="flex min-w-0 items-baseline gap-2">
+        <span className="text-[17px] font-semibold text-foreground">{name || providerId}</span>
+        <span className="font-mono text-sm text-muted-foreground">{providerId}</span>
+      </span>
+      <span className="flex flex-wrap items-center gap-4 text-sm">
         <Controller
           control={form.control}
           name={`providers.${providerId}.enabled`}
           render={({ field: enabled }) => (
-            <Label className="flex items-center gap-2 text-sm">
-              <Switch checked={enabled.value} onCheckedChange={(checked) => enabled.onChange(checked)} />
-              <span className={enabled.value ? 'text-foreground' : 'text-muted-foreground'}>{enabled.value ? 'Enabled' : 'Disabled: no tier can use it'}</span>
-            </Label>
+            <span className="flex items-center gap-2">
+              <StatusIndicator value={enabled.value ? 'enabled' : 'disabled'} />
+              <Switch
+                checked={enabled.value}
+                onCheckedChange={(checked) => enabled.onChange(checked)}
+                onClick={(event) => event.stopPropagation()}
+                aria-label={`${name || providerId} enabled`}
+              />
+            </span>
           )}
         />
-      </div>
-      <div className="provider-fields-grid grid gap-3 md:grid-cols-3">
-        {TEXT_FIELDS.map(([name, label]) => (
-          <div key={name} className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor={field(name)}>{label}</Label>
-            <Input id={field(name)} autoComplete="off" spellCheck={false} {...form.register(`providers.${providerId}.${name}`)} />
-          </div>
-        ))}
-      </div>
-      <Controller
-        control={form.control}
-        name={`providers.${providerId}.efforts`}
-        render={({ field: efforts }) => (
-          <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <legend className="mb-2 text-sm font-medium">Efforts it accepts</legend>
-            {EFFORT_ORDER.map((effort) => (
-              <label key={effort} className="flex min-h-6 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="size-4 accent-primary"
-                  checked={efforts.value.includes(effort)}
-                  onChange={(event) => efforts.onChange(event.target.checked ? EFFORT_ORDER.filter((kept) => kept === effort || efforts.value.includes(kept)) : efforts.value.filter((kept) => kept !== effort))}
-                />
-                {effort}
-              </label>
-            ))}
-          </fieldset>
+        {keyPresent === undefined ? (
+          <span className="font-medium text-muted-foreground">Key checking</span>
+        ) : (
+          <StatusIndicator value={keyPresent ? 'present' : 'absent'} label={keyPresent ? 'Key present' : 'Key absent'} />
         )}
-      />
-      <Controller
-        control={form.control}
-        name={`providers.${providerId}.repairProxy`}
-        render={({ field: proxy }) =>
-          proxy.value === null ? (
-            <p className="border-t border-border pt-4 text-sm text-muted-foreground">No repair proxy.</p>
-          ) : (
-            <div className="provider-fields-grid grid gap-3 border-t border-border pt-4 md:grid-cols-3">
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <Label htmlFor={field('proxy-port')}>Repair proxy port</Label>
-                <Input id={field('proxy-port')} type="number" className="tabular-nums" value={Number.isNaN(proxy.value.port) ? '' : proxy.value.port} onChange={(event) => proxy.onChange({ ...proxy.value, port: event.target.valueAsNumber })} />
+        <span className="text-muted-foreground">
+          {modelCount} model{modelCount === 1 ? '' : 's'}
+        </span>
+      </span>
+    </summary>
+  );
+}
+
+export function ProviderFields({ form, providerId }: { form: ConfigForm; providerId: string }) {
+  const field = (name: string) => `provider-${providerId}-${name}`;
+
+  return (
+    <div className="provider-fields flex flex-col gap-4">
+      <SettingsGroup title="Connection">
+        <div className="grid gap-3 md:grid-cols-[minmax(140px,1fr)_minmax(240px,2fr)_minmax(240px,2fr)]">
+          <Field label="Name" htmlFor={field('name')}>
+            <Input autoComplete="off" {...form.register(`providers.${providerId}.name`)} />
+          </Field>
+          <Field label="Base URL" htmlFor={field('base-url')}>
+            <Input data-mono autoComplete="off" spellCheck={false} {...form.register(`providers.${providerId}.baseUrl`)} />
+          </Field>
+          <Field label="Keychain service" htmlFor={field('keychain')}>
+            <Input data-mono autoComplete="off" spellCheck={false} {...form.register(`providers.${providerId}.keychainService`)} />
+          </Field>
+        </div>
+      </SettingsGroup>
+
+      <SettingsGroup title="Efforts">
+        <Controller
+          control={form.control}
+          name={`providers.${providerId}.efforts`}
+          render={({ field: efforts }) => (
+            <fieldset className="flex flex-wrap gap-2">
+              <legend className="sr-only">Efforts it accepts</legend>
+              {EFFORT_ORDER.map((effort) => (
+                <ToggleChip
+                  key={effort}
+                  label={effort}
+                  checked={efforts.value.includes(effort)}
+                  onChange={(event) =>
+                    efforts.onChange(
+                      event.target.checked
+                        ? EFFORT_ORDER.filter((kept) => kept === effort || efforts.value.includes(kept))
+                        : efforts.value.filter((kept) => kept !== effort),
+                    )
+                  }
+                />
+              ))}
+            </fieldset>
+          )}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="Repair proxy">
+        <Controller
+          control={form.control}
+          name={`providers.${providerId}.repairProxy`}
+          render={({ field: proxy }) =>
+            proxy.value === null ? (
+              <p className="text-sm text-muted-foreground">No repair proxy.</p>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-3">
+                <Field label="Port" htmlFor={field('proxy-port')}>
+                  <Input
+                    data-mono
+                    type="number"
+                    value={Number.isNaN(proxy.value.port) ? '' : proxy.value.port}
+                    onChange={(event) => proxy.onChange({ ...proxy.value, port: event.target.valueAsNumber })}
+                  />
+                </Field>
+                <Field label="Proxy log" htmlFor={field('proxy-log')}>
+                  <Input data-mono spellCheck={false} value={proxy.value.logPath} onChange={(event) => proxy.onChange({ ...proxy.value, logPath: event.target.value })} />
+                </Field>
+                <Field label="Proxy telemetry" htmlFor={field('proxy-telemetry')}>
+                  <Input data-mono spellCheck={false} value={proxy.value.telemetryPath} onChange={(event) => proxy.onChange({ ...proxy.value, telemetryPath: event.target.value })} />
+                </Field>
               </div>
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <Label htmlFor={field('proxy-log')}>Proxy log</Label>
-                <Input id={field('proxy-log')} spellCheck={false} value={proxy.value.logPath} onChange={(event) => proxy.onChange({ ...proxy.value, logPath: event.target.value })} />
-              </div>
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <Label htmlFor={field('proxy-telemetry')}>Proxy telemetry</Label>
-                <Input id={field('proxy-telemetry')} spellCheck={false} value={proxy.value.telemetryPath} onChange={(event) => proxy.onChange({ ...proxy.value, telemetryPath: event.target.value })} />
-              </div>
-            </div>
-          )
-        }
-      />
+            )
+          }
+        />
+      </SettingsGroup>
     </div>
   );
 }

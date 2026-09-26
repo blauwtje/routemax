@@ -1,9 +1,12 @@
 import { useState } from 'react';
-import { CircleCheckIcon, CircleXIcon, FlaskConicalIcon } from 'lucide-react';
+import { CheckIcon, FlaskConicalIcon, Loader2Icon, XIcon } from 'lucide-react';
+import { SettingsGroup } from '@/components/settings-group';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
 import type { ProviderTestResult } from '@/lib/api-types';
 import { api } from '@/lib/browser-api';
+import { cn } from '@/lib/utils';
 import { describeError, formatTime, formatUsd } from '@/lib/format';
 
 interface ProviderTestPanelProps {
@@ -14,17 +17,26 @@ interface ProviderTestPanelProps {
   onTested: () => void;
 }
 
-const SELECT_CLASS =
-  'provider-test-panel-select h-8 min-w-0 flex-1 rounded-lg border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
-
 function TestResultLine({ result }: { result: ProviderTestResult | undefined }) {
   if (result === undefined) return <p className="text-sm text-muted-foreground">Never tested.</p>;
-  const ResultIcon = result.passed ? CircleCheckIcon : CircleXIcon;
+  const Icon = result.passed ? CheckIcon : XIcon;
   return (
-    <p className="flex items-start gap-2 text-sm">
-      <ResultIcon aria-hidden="true" className={`mt-0.5 size-4 shrink-0 ${result.passed ? 'text-status-done' : 'text-status-refused'}`} />
+    <p className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="inline-flex items-center gap-1.5">
+        <Icon
+          key={result.testedAt}
+          aria-hidden="true"
+          className={cn(
+            'size-4 shrink-0 motion-safe:scale-100 motion-safe:transition-transform motion-safe:duration-(--dur-panel) motion-safe:ease-(--ease-spring) motion-safe:starting:scale-0',
+            result.passed ? 'text-status-positive' : 'text-status-negative',
+          )}
+        />
+        <span className={result.passed ? 'font-medium text-status-positive' : 'font-medium text-status-negative'}>{result.passed ? 'Passed' : 'Failed'}</span>
+      </span>
       <span className="min-w-0 break-words">
-        {`${result.passed ? 'Last test passed' : 'Last test failed'} on ${result.model} at ${formatTime(result.testedAt)}, cost ${formatUsd(result.costUsd)}: ${result.detail}`}
+        {`on ${result.model} at ${formatTime(result.testedAt)}, cost `}
+        <span className="font-mono tabular-nums">{formatUsd(result.costUsd)}</span>
+        {`: ${result.detail}`}
       </span>
     </p>
   );
@@ -50,24 +62,28 @@ export function ProviderTestPanel({ providerId, models, result, dirty, onTested 
   }
 
   return (
-    <div className="provider-test-panel flex min-w-0 flex-col gap-1.5">
-      <Label htmlFor={`test-${providerId}-model`}>Test</Label>
-      <TestResultLine result={result} />
-      <div className="flex gap-2">
-        <select id={`test-${providerId}-model`} className={SELECT_CLASS} value={chosen} onChange={(event) => setModel(event.target.value)}>
-          {models.map((name) => (
-            <option key={name} value={name}>
-              {name}
-            </option>
-          ))}
-        </select>
-        <Button type="button" variant="outline" disabled={running || dirty || chosen === ''} onClick={() => void runTest()}>
-          <FlaskConicalIcon aria-hidden="true" />
-          {running ? 'Testing…' : 'Run a paid test call'}
-        </Button>
+    <SettingsGroup title="Test call">
+      <div className="provider-test-panel flex flex-col gap-3">
+        <TestResultLine result={result} />
+        <div className="flex flex-col gap-2">
+          <div className="flex w-full min-w-0 flex-col gap-1.5">
+            <Label htmlFor={`test-${providerId}-model`}>Model</Label>
+            <NativeSelect id={`test-${providerId}-model`} value={chosen} onChange={(event) => setModel(event.target.value)}>
+              {models.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </NativeSelect>
+          </div>
+          <Button type="button" variant="outline" className="self-start" disabled={running || dirty || chosen === ''} onClick={() => void runTest()}>
+            {running ? <Loader2Icon aria-hidden="true" className="motion-safe:animate-spin" /> : <FlaskConicalIcon aria-hidden="true" />}
+            {running ? 'Testing…' : 'Run a paid test call'}
+          </Button>
+        </div>
+        {dirty && <p className="text-sm text-muted-foreground">Save first: the test runs the saved config, and this call is billed.</p>}
+        {error !== null && <p className="text-sm text-destructive">{error}</p>}
       </div>
-      {dirty && <p className="text-sm text-muted-foreground">Save first: the test runs the saved config.</p>}
-      {error !== null && <p className="text-sm text-destructive">{error}</p>}
-    </div>
+    </SettingsGroup>
   );
 }

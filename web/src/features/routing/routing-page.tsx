@@ -1,11 +1,14 @@
-import { SplitIcon } from 'lucide-react';
+import { Fragment } from 'react';
 import { SaveBar } from '@/components/save-bar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 import { useConfigForm } from '@/hooks/use-config-form';
 import { usePoll } from '@/hooks/use-poll';
 import type { ProviderTestsResponse } from '@/lib/api-types';
 import { api } from '@/lib/browser-api';
+import { getTierColors } from '@/lib/tier-colors';
 import { useWatch } from 'react-hook-form';
+import { TIER_ORDER } from '../../../../src/config/config-schema';
 import { ClaudeAgentsEditor } from './claude-agents-editor';
 import { EffortMapEditor } from './effort-map-editor';
 import { RoutePreview } from './route-preview';
@@ -15,6 +18,62 @@ import { tierWarnings } from './tier-warnings';
 
 const loadProviderTests = () => api.request<ProviderTestsResponse>('GET', '/api/provider-tests');
 
+// The ladder is a decorative summary of tier order; the TierEditor table below is the
+// authoritative, fully accessible source for each tier's provider/model/effort.
+function TierLadder() {
+  return (
+    <div
+      className="tier-ladder flex items-center"
+      role="img"
+      aria-label={`Tier ladder, in order of escalation: ${TIER_ORDER.join(', ')}`}
+    >
+      {TIER_ORDER.map((tier, i) => {
+        const colors = getTierColors(tier);
+        return (
+          <Fragment key={tier}>
+            <div aria-hidden="true" className="tier-ladder-node flex min-w-0 shrink-0 flex-col items-center gap-1.5">
+              <span className={`tier-ladder-dot size-7 shrink-0 rounded-full shadow-[0_0_10px_currentColor] ${colors.dot} ${colors.text}`} />
+              <span className="max-w-16 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10px] text-muted-foreground">{tier}</span>
+            </div>
+            {i < TIER_ORDER.length - 1 && (
+              <div
+                aria-hidden="true"
+                className="tier-ladder-connector relative h-1 min-w-3 flex-1 -translate-y-2.5 overflow-hidden rounded-full"
+                style={{ background: `linear-gradient(to right, var(--tier-${tier}), var(--tier-${TIER_ORDER[i + 1]}))` }}
+              >
+                <span
+                  className="tier-ladder-pulse absolute inset-y-0 w-12 opacity-0"
+                  style={{ background: 'linear-gradient(to right, transparent, white, transparent)' }}
+                />
+              </div>
+            )}
+          </Fragment>
+        );
+      })}
+      <style>{`
+        @keyframes tier-ladder-pulse-travel {
+          from { transform: translateX(-3rem); }
+          to { transform: translateX(calc(100% + 3rem)); }
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          html[data-router="on"] .tier-ladder-pulse {
+            opacity: 0.9;
+            animation: tier-ladder-pulse-travel 2.2s var(--ease-out-expo) infinite;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function RoutingPanel({ index, children }: { index: number; children: React.ReactNode }) {
+  return (
+    <Card className="routing-panel" style={{ '--panel-index': index } as React.CSSProperties}>
+      <CardContent className="pt-6">{children}</CardContent>
+    </Card>
+  );
+}
+
 export function RoutingPage() {
   const { form, ready, previousExists, loadError, saveState, save, restore, reload } = useConfigForm();
   const tests = usePoll(loadProviderTests).state;
@@ -23,12 +82,6 @@ export function RoutingPage() {
 
   return (
     <div className="routing-page flex flex-col gap-6">
-      <h1 className="flex items-center gap-3 font-heading text-2xl font-bold tracking-tight">
-        <span aria-hidden="true" className="grid size-10 place-items-center rounded-lg bg-primary/15 text-primary">
-          <SplitIcon className="size-5" />
-        </span>
-        Routing
-      </h1>
       {loadError !== null && (
         <Alert variant="destructive">
           <AlertDescription>{loadError}</AlertDescription>
@@ -37,11 +90,24 @@ export function RoutingPage() {
       {!ready && loadError === null && <p className="text-sm text-muted-foreground">Loading…</p>}
       {ready && (
         <>
-          <TierEditor form={form} />
-          <EffortMapEditor form={form} />
-          <ClaudeAgentsEditor form={form} />
-          <RuleEditor form={form} />
-          <RoutePreview form={form} />
+          <RoutingPanel index={0}>
+            <TierLadder />
+          </RoutingPanel>
+          <RoutingPanel index={1}>
+            <TierEditor form={form} />
+          </RoutingPanel>
+          <RoutingPanel index={2}>
+            <EffortMapEditor form={form} />
+          </RoutingPanel>
+          <RoutingPanel index={3}>
+            <ClaudeAgentsEditor form={form} />
+          </RoutingPanel>
+          <RoutingPanel index={4}>
+            <RuleEditor form={form} />
+          </RoutingPanel>
+          <RoutingPanel index={5}>
+            <RoutePreview form={form} />
+          </RoutingPanel>
           <SaveBar
             saveState={saveState}
             dirty={form.formState.isDirty}
@@ -53,6 +119,17 @@ export function RoutingPage() {
           />
         </>
       )}
+      <style>{`
+        @keyframes routing-panel-enter {
+          from { opacity: 0.001; transform: translateY(8px); }
+        }
+        @media (prefers-reduced-motion: no-preference) {
+          .routing-panel {
+            animation: routing-panel-enter var(--dur-panel) var(--ease-out-expo) both;
+            animation-delay: calc(var(--stagger-card) * var(--panel-index, 0));
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { PlusIcon } from 'lucide-react';
+import { Field } from '@/components/field';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { EFFORT_ORDER } from '../../../../src/config/config-schema';
 
 const PROVIDER_ID = /^[a-z0-9-]+$/;
 
-export function AddProviderForm({ form }: { form: ConfigForm }) {
+export function AddProviderForm({ form, panelIndex }: { form: ConfigForm; panelIndex: number }) {
   const [providerId, setProviderId] = useState('');
   const [name, setName] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
@@ -27,46 +28,40 @@ export function AddProviderForm({ form }: { form: ConfigForm }) {
   }
 
   return (
-    <section aria-labelledby="add-provider-form-title" className="add-provider-form flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h2 id="add-provider-form-title" className="font-heading text-lg font-bold tracking-tight">
-          Add a provider
-        </h2>
-        <p className="max-w-prose text-sm text-pretty text-muted-foreground">It starts disabled with no models, so no tier can use it until it has one.</p>
-      </div>
-      <div className="flex flex-col gap-4 rounded-xl border border-dashed border-border p-4">
-        <div className="add-provider-form-grid grid gap-3 md:grid-cols-3">
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="new-provider-id">Id</Label>
-            <Input
-              id="new-provider-id"
-              autoComplete="off"
-              spellCheck={false}
-              value={providerId}
-              aria-invalid={problem !== null}
-              aria-describedby={problem !== null ? 'new-provider-id-problem' : undefined}
-              onChange={(event) => setProviderId(event.target.value.trim())}
-            />
-            {problem !== null && (
-              <p id="new-provider-id-problem" className="text-sm text-destructive">
-                {problem}
-              </p>
-            )}
+    <section aria-labelledby="add-provider-form-title">
+      <Card
+        className="add-provider-form border-dashed border-border-strong motion-safe:transition-[opacity,transform] motion-safe:duration-(--dur-panel) motion-safe:ease-(--ease-out-expo) motion-safe:starting:translate-y-2 motion-safe:starting:opacity-0"
+        style={{ transitionDelay: `${Math.min(panelIndex, 5) * 40}ms` }}
+      >
+        <CardHeader>
+          <CardTitle id="add-provider-form-title" className="text-[17px]">
+            Add a provider
+          </CardTitle>
+          <CardDescription className="max-w-prose text-pretty">It starts disabled with no models, so no tier can use it until it has one.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="add-provider-form-grid grid gap-3 md:grid-cols-3">
+            <Field label="Id" htmlFor="new-provider-id" error={problem}>
+              <Input
+                autoComplete="off"
+                spellCheck={false}
+                value={providerId}
+                onChange={(event) => setProviderId(event.target.value.trim())}
+              />
+            </Field>
+            <Field label="Name" htmlFor="new-provider-name">
+              <Input autoComplete="off" value={name} onChange={(event) => setName(event.target.value)} />
+            </Field>
+            <Field label="Base URL" htmlFor="new-provider-url">
+              <Input data-mono type="url" autoComplete="off" spellCheck={false} value={baseUrl} onChange={(event) => setBaseUrl(event.target.value.trim())} />
+            </Field>
           </div>
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="new-provider-name">Name</Label>
-            <Input id="new-provider-name" autoComplete="off" value={name} onChange={(event) => setName(event.target.value)} />
-          </div>
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <Label htmlFor="new-provider-url">Base URL</Label>
-            <Input id="new-provider-url" type="url" autoComplete="off" spellCheck={false} value={baseUrl} onChange={(event) => setBaseUrl(event.target.value.trim())} />
-          </div>
-        </div>
-        <Button type="button" variant="outline" className="self-start" disabled={providerId === '' || problem !== null || name.trim() === '' || baseUrl === ''} onClick={add}>
-          <PlusIcon aria-hidden="true" />
-          Add provider
-        </Button>
-      </div>
+          <Button type="button" variant="outline" className="self-start" disabled={providerId === '' || problem !== null || name.trim() === '' || baseUrl === ''} onClick={add}>
+            <PlusIcon aria-hidden="true" />
+            Add provider
+          </Button>
+        </CardContent>
+      </Card>
     </section>
   );
 }

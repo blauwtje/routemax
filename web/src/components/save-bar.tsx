@@ -1,6 +1,7 @@
 import { CheckIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { SaveState } from '@/hooks/use-config-form';
 
 interface SaveBarProps {
@@ -62,10 +63,10 @@ function SaveStatus({ saveState, onReload }: { saveState: SaveState; onReload: (
   }
 }
 
-export function SaveBar({ saveState, dirty, previousExists, warnings = [], onSave, onRestore, onReload }: SaveBarProps) {
+function SaveBarBody({ saveState, dirty, previousExists, warnings, onSave, onRestore, onReload }: SaveBarProps & { warnings: string[] }) {
   const busy = saveState.kind === 'saving';
   return (
-    <div className="save-bar sticky bottom-3 flex flex-col gap-2 rounded-xl border bg-card/95 px-4 py-3 shadow-(--shadow-card) backdrop-blur-sm">
+    <>
       {warnings.length > 0 && (
         <Alert className="save-bar-warnings">
           <AlertTitle>Check before saving</AlertTitle>
@@ -90,6 +91,31 @@ export function SaveBar({ saveState, dirty, previousExists, warnings = [], onSav
         </Button>
         {dirty && <span className="text-sm text-muted-foreground">Unsaved changes</span>}
       </div>
-    </div>
+    </>
+  );
+}
+
+// The bar docks fixed to the viewport (full-bleed) so it never scrolls with the page. Since this
+// primitive cannot edit the page files to add bottom padding for the reserved space, an invisible
+// twin renders in normal flow with identical padding/gap classes: its box height always matches the
+// real bar's height (same content, same warnings/state), so page content is never covered.
+export function SaveBar(props: SaveBarProps) {
+  const { dirty, warnings = [] } = props;
+  const bodyClass = 'flex flex-col gap-2 rounded-t-lg border border-border bg-surface-1 px-4 py-3 shadow-panel backdrop-blur-md';
+  return (
+    <>
+      <div aria-hidden="true" className={cn('save-bar-spacer invisible', bodyClass)}>
+        <SaveBarBody {...props} warnings={warnings} />
+      </div>
+      <div
+        data-dirty={dirty}
+        className={cn(
+          'save-bar fixed inset-x-0 bottom-0 z-40 mx-auto max-w-fit opacity-100 translate-y-0 motion-safe:transition-[opacity,transform] motion-safe:duration-(--dur-panel) motion-safe:ease-[var(--ease-spring)] motion-safe:starting:opacity-0 motion-safe:starting:translate-y-4',
+          bodyClass,
+        )}
+      >
+        <SaveBarBody {...props} warnings={warnings} />
+      </div>
+    </>
   );
 }
