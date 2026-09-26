@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useWatch } from 'react-hook-form';
 import { SaveBar } from '@/components/save-bar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -6,10 +7,8 @@ import { usePoll } from '@/hooks/use-poll';
 import type { KeysResponse, ProviderTestsResponse } from '@/lib/api-types';
 import { api } from '@/lib/browser-api';
 import { AddProviderForm } from './add-provider-form';
-import { ProviderFields, ProviderSummary } from './provider-fields';
-import { ProviderKeyForm } from './provider-key-form';
-import { ProviderModels } from './provider-models';
-import { ProviderTestPanel } from './provider-test-panel';
+import { ProviderRow } from './provider-row';
+import { ProviderSheet } from './provider-sheet';
 
 const loadKeys = () => api.request<KeysResponse>('GET', '/api/keys');
 const loadProviderTests = () => api.request<ProviderTestsResponse>('GET', '/api/provider-tests');
@@ -19,6 +18,8 @@ export function ProvidersPage() {
   const providers = useWatch({ control: form.control, name: 'providers' }) ?? {};
   const keys = usePoll(loadKeys);
   const tests = usePoll(loadProviderTests);
+  const [openProviderId, setOpenProviderId] = useState<string | null>(null);
+  const providerIds = Object.keys(providers);
   const keyPresent = (providerId: string) =>
     keys.state.kind === 'loaded' && Object.hasOwn(keys.state.value.keys, providerId) ? keys.state.value.keys[providerId].present : undefined;
   const lastTest = (providerId: string) => (tests.state.kind === 'loaded' && Object.hasOwn(tests.state.value, providerId) ? tests.state.value[providerId] : undefined);
@@ -33,39 +34,57 @@ export function ProvidersPage() {
       {!ready && loadError === null && <p className="text-sm text-muted-foreground">Loading…</p>}
       {ready && (
         <>
-          <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">
-            Keys are stored in the macOS Keychain, never in the config file on disk. A test call is real and billed against the saved configuration.
-          </p>
-          {Object.keys(providers).map((providerId, i) => (
-            <details
-              key={providerId}
-              open={providers[providerId].enabled}
-              className="providers-page-provider relative overflow-hidden rounded-lg border border-border bg-surface-1 shadow-panel before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-[oklch(1_0_0/0.08)] motion-safe:transition-[opacity,transform] motion-safe:duration-(--dur-panel) motion-safe:ease-(--ease-out-expo) motion-safe:starting:translate-y-2 motion-safe:starting:opacity-0"
-              style={{ transitionDelay: `${Math.min(i, 5) * 40}ms` }}
+          <div className="providers-page-intro flex flex-wrap items-end justify-between gap-4">
+            <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">
+              Keys are stored in the macOS Keychain, never in the config file on disk. A test call is real and billed against the saved configuration.
+            </p>
+            <AddProviderForm form={form} onAdded={setOpenProviderId} />
+          </div>
+          <section
+            aria-labelledby="providers-page-list-title"
+            className="providers-page-list relative overflow-hidden rounded-lg border border-border bg-surface-1 shadow-panel [--provider-row-columns:minmax(0,1fr)_8.5rem_13rem_6.5rem] before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-[oklch(1_0_0/0.08)] motion-safe:transition-[opacity,transform] motion-safe:duration-(--dur-panel) motion-safe:ease-(--ease-out-expo) motion-safe:starting:translate-y-2 motion-safe:starting:opacity-0"
+          >
+            <h2 id="providers-page-list-title" className="sr-only">
+              Providers
+            </h2>
+            <div
+              aria-hidden="true"
+              className="providers-page-list-head hidden grid-cols-(--provider-row-columns) gap-x-4 border-b border-border px-5 py-2 font-mono text-[12px] tracking-wide text-muted-foreground uppercase md:grid"
             >
-              <ProviderSummary
-                form={form}
-                providerId={providerId}
-                keyPresent={keyPresent(providerId)}
-                modelCount={Object.keys(providers[providerId].models ?? {}).length}
-              />
-              <div className="providers-page-provider-body flex flex-col gap-6 border-t border-border px-4 pt-4 pb-5 sm:px-6">
-                <ProviderFields form={form} providerId={providerId} />
-                <ProviderModels form={form} providerId={providerId} />
-                <div className="providers-page-checks grid gap-4 md:grid-cols-2">
-                  <ProviderKeyForm providerId={providerId} present={keyPresent(providerId)} onStored={keys.refresh} />
-                  <ProviderTestPanel
+              <span>Provider</span>
+              <span>Key</span>
+              <span>Last test</span>
+              <span className="justify-self-end">On</span>
+            </div>
+            {providerIds.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-muted-foreground">No providers yet. Add one to give a tier somewhere to send tasks.</p>
+            ) : (
+              <ul className="providers-page-rows divide-y divide-border">
+                {providerIds.map((providerId) => (
+                  <ProviderRow
+                    key={providerId}
+                    form={form}
                     providerId={providerId}
-                    models={Object.keys(providers[providerId].models ?? {})}
-                    result={lastTest(providerId)}
-                    dirty={form.formState.isDirty}
-                    onTested={tests.refresh}
+                    keyPresent={keyPresent(providerId)}
+                    lastTest={lastTest(providerId)}
+                    modelCount={Object.keys(providers[providerId].models ?? {}).length}
+                    onOpen={setOpenProviderId}
                   />
-                </div>
-              </div>
-            </details>
-          ))}
-          <AddProviderForm form={form} panelIndex={Object.keys(providers).length} />
+                ))}
+              </ul>
+            )}
+          </section>
+          <ProviderSheet
+            form={form}
+            providerId={openProviderId !== null && Object.hasOwn(providers, openProviderId) ? openProviderId : null}
+            keyPresent={openProviderId === null ? undefined : keyPresent(openProviderId)}
+            lastTest={openProviderId === null ? undefined : lastTest(openProviderId)}
+            onOpenChange={(open) => {
+              if (!open) setOpenProviderId(null);
+            }}
+            onKeyStored={keys.refresh}
+            onTested={tests.refresh}
+          />
           <SaveBar
             saveState={saveState}
             dirty={form.formState.isDirty}
