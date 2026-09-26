@@ -8,7 +8,7 @@ import { SettingsGroup } from '@/components/settings-group';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { CopyButton } from './copy-button';
 
-export function ProjectCommands({ form, panelClassName }: { form: ConfigForm; panelClassName?: string }) {
+export function ProjectCommands({ form, className }: { form: ConfigForm; className?: string }) {
   const [newFolder, setNewFolder] = useState('');
   return (
     <Controller
@@ -18,7 +18,7 @@ export function ProjectCommands({ form, panelClassName }: { form: ConfigForm; pa
         <SettingsGroup
           title="Project commands"
           description="The test command routemax runs in each project folder to verify a delegate change before handing control back."
-          className={panelClassName}
+          className={className}
         >
           {Object.keys(field.value ?? {}).length === 0 && (
             <p className="text-sm text-muted-foreground">No projects yet.</p>
