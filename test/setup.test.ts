@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG_PATH } from '../src/config/delegate-config';
+import { liveConfigPath } from '../src/config/routemax-paths';
 import { addDeepseekHomeToChezmoi } from '../src/setup/add-deepseek-home-to-chezmoi';
 import { createDeepseekHome } from '../src/setup/create-deepseek-home';
 import { findAnthropicVariables } from '../src/setup/find-anthropic-variables';
@@ -171,6 +172,18 @@ describe('npm run setup', () => {
     expect(readFileSync(claude.addLog, 'utf8')).toBe(
       `-s user deepseek-delegate -- ${join(ROOT, 'node_modules/.bin/tsx')} ${join(ROOT, 'src/server.ts')}\n`,
     );
+  });
+
+  it('adds the live config to the chezmoi source', () => {
+    const root = tempRoot();
+    const home = join(root, 'home');
+    mkdirSync(home);
+    const chezmoi = fakeChezmoi(root);
+    fakeClaude(root);
+    const run = runSetup(home, join(root, 'bin'));
+    expect(run.status).toBe(0);
+    expect(readFileSync(chezmoi.addLog, 'utf8')).toContain(liveConfigPath(home));
+    expect(run.stdout).toContain(`Added ${liveConfigPath(home)} to the chezmoi source.`);
   });
 
   it('is idempotent: a second run registers nothing twice and still exits 0', () => {
