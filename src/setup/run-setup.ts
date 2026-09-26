@@ -1,8 +1,9 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig } from '../config/delegate-config';
+import { activeConfigPath, loadConfig } from '../config/delegate-config';
 import { addDeepseekHomeToChezmoi } from './add-deepseek-home-to-chezmoi';
+import { addLiveConfigToChezmoi } from './add-live-config-to-chezmoi';
 import { createDeepseekHome } from './create-deepseek-home';
 import { findAnthropicVariables } from './find-anthropic-variables';
 import { installAgents } from './install-agents';
@@ -18,6 +19,8 @@ for (const message of deepseekHome.messages) console.log(message);
 
 const agents = await installAgents({ repoAgentsDir: join(repoRoot, 'agents'), homeDir, chezmoiBin: 'chezmoi' });
 for (const message of agents.messages) console.log(message);
+
+console.log(await addLiveConfigToChezmoi(activeConfigPath(), 'chezmoi'));
 
 const registration = await registerServer(serverRegistration(repoRoot, loadConfig().claudeBin));
 if (registration.ok) {
