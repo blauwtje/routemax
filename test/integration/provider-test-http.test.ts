@@ -52,6 +52,7 @@ beforeAll(async () => {
       env: { ...process.env, HOME: home },
       readApiKey: async (service) => (service === 'bad_api_key' ? 'sk-wrong-key' : FAKE_KEY),
       ensureProxy,
+      fetchImpl: fetch,
     }),
   }));
 });

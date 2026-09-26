@@ -22,7 +22,12 @@ interface HarnessOptions {
   testCommand?: string;
   ensureProxy?: DelegateDeps['ensureProxy'];
   readApiKey?: () => Promise<string>;
+  fetchImpl?: DelegateDeps['fetchImpl'];
 }
+
+const throwingFetch: DelegateDeps['fetchImpl'] = () => {
+  throw new Error('fetchImpl should not be called while smart routing is off');
+};
 
 function harness(options: HarnessOptions = {}) {
   const root = mkdtempSync(join(tmpdir(), 'routemax-delegate-'));
@@ -43,6 +48,7 @@ function harness(options: HarnessOptions = {}) {
       deepseek: { ...shipped.providers.deepseek, repairProxy: { port: 8787, logPath: join(root, 'proxy.log'), telemetryPath } },
     },
     projects: options.testCommand ? { [cwd]: { testCommand: options.testCommand } } : {},
+    smartRouting: { ...shipped.smartRouting, enabled: false },
     ...options.config,
   };
   const env = {
@@ -60,6 +66,7 @@ function harness(options: HarnessOptions = {}) {
     env,
     readApiKey: options.readApiKey ?? (async () => FAKE_KEY),
     ensureProxy: options.ensureProxy ?? (async () => 'running'),
+    fetchImpl: options.fetchImpl ?? throwingFetch,
   };
   return { deps, home, cwd, recordPath };
 }
@@ -103,7 +110,23 @@ describe('delegate', () => {
       cwd: realpathSync(cwd),
     });
     expect(record.args).not.toContain('--dangerously-skip-permissions');
-    expect(logLines(home)[0]).toMatchObject({ taskType: 'boilerplate', requestedTier: 'flash-low', finalTier: 'flash-high', raisedBy: 'boilerplate-tests-edits', provider: 'deepseek', status: 'done', reason: null, retries: 0 });
+    expect(logLines(home)[0]).toMatchObject({ taskType: 'boilerplate', requestedTier: 'flash-low', finalTier: 'flash-high', raisedBy: 'boilerplate-tests-edits', provider: 'deepseek', status: 'done', reason: null, retries: 0, routedBy: 'off', routeReason: 'smart routing is off' });
+  });
+
+  it('folds the check cost into the logged costUsd for a task the check classifies', async () => {
+    const responseBody = {
+      content: [{ type: 'text', text: '{"tier":"flash-low","effort":"low"}' }],
+      usage: { input_tokens: 100, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    };
+    const { deps, home } = harness({
+      config: { smartRouting: { enabled: true, checkTimeoutMs: 3000 } },
+      fetchImpl: (async () => new Response(JSON.stringify(responseBody), { status: 200 })) as DelegateDeps['fetchImpl'],
+    });
+    const result = await delegate(request({ task: 'do the thing', taskType: 'other' }), deps);
+    const record = logLines(home)[0];
+    expect(record.routedBy).toBe('check');
+    expect(typeof record.routeReason).toBe('string');
+    expect(result.status === 'done' && record.costUsd).toBeGreaterThan(result.status === 'done' ? result.costUsd : Infinity);
   });
 
   it('raises the worker effort for a higher Claude effort', async () => {

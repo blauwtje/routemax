@@ -19,7 +19,7 @@ function liveUiDeps(homeDir: string, configPath: string): UiDeps {
     configPath,
     chezmoiBin: 'chezmoi',
     doctorDeps: () => doctorDeps(REPO_ROOT, loadConfig(configPath), homeDir),
-    delegateDeps: () => ({ config: loadConfig(configPath), homeDir, cwd: process.cwd(), env: process.env, readApiKey, ensureProxy }),
+    delegateDeps: () => ({ config: loadConfig(configPath), homeDir, cwd: process.cwd(), env: process.env, readApiKey, ensureProxy, fetchImpl: fetch }),
   };
 }
 

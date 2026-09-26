@@ -24,6 +24,7 @@ function providerTestConfig(config: DelegateConfig, providerId: string, model: s
   provider.enabled = true;
   copy.tiers['flash-low'] = { provider: providerId, model, effort: provider.efforts[0] };
   copy.rules = [];
+  copy.smartRouting = { ...copy.smartRouting, enabled: false };
   return copy;
 }
 

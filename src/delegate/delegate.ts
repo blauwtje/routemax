@@ -6,7 +6,8 @@ import { appendDecision, decisionLogPath, readSpentUsd, type DecisionBase } from
 import { countProxyRetries } from '../proxy/count-proxy-retries';
 import { proxyUrl, type ProxyStart } from '../proxy/ensure-proxy';
 import { isRouterEnabled } from '../router-switch/router-switch';
-import { claudeAgentFor, planRoute, type WorkerRoutePlan } from '../routing/plan-route';
+import { claudeAgentFor } from '../routing/plan-route';
+import { smartRoute, type SmartRoutePlan } from '../routing/smart-route';
 import { runTestCommand, type TestOutcome } from '../worker/run-test-command';
 import { runWorker, workerArgs, type WorkerOutcome } from '../worker/run-worker';
 import { buildWorkerEnv, parseEnvVars } from '../worker/worker-env';
@@ -19,6 +20,7 @@ export interface DelegateDeps {
   env: NodeJS.ProcessEnv;
   readApiKey: (keychainService: string) => Promise<string>;
   ensureProxy: (start: ProxyStart) => Promise<unknown>;
+  fetchImpl: typeof fetch;
 }
 
 const SUMMARY_LIMIT = 1_500;
@@ -30,7 +32,7 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
   }
   const startedAt = Date.now();
   if (!isRouterEnabled(deps.homeDir)) return handOffWhileDisabled(request, deps, startedAt);
-  const plan = planRoute(deps.config, request);
+  const plan = await smartRoute(deps.config, request, { readApiKey: deps.readApiKey, fetchImpl: deps.fetchImpl });
   const logPath = decisionLogPath(deps.homeDir);
   const base: DecisionBase = {
     ts: new Date(startedAt).toISOString(),
@@ -40,10 +42,12 @@ export async function delegate(request: DelegateRequest, deps: DelegateDeps): Pr
     finalTier: plan.tier,
     raisedBy: plan.raisedBy,
     provider: plan.tier === 'claude' ? null : plan.provider,
+    routedBy: plan.routedBy,
+    routeReason: plan.routeReason,
   };
   if (plan.tier === 'claude') {
     const handoff = claudeHandoff(deps.config, plan.agent);
-    await appendDecision(logPath, { ...base, ...NO_RUN, model: handoff.model, effort: handoff.effort, status: 'use_claude', reason: null, durationMs: Date.now() - startedAt });
+    await appendDecision(logPath, { ...base, ...NO_RUN, model: handoff.model, effort: handoff.effort, status: 'use_claude', reason: null, durationMs: Date.now() - startedAt, costUsd: plan.checkCostUsd });
     return handoff;
   }
   const refusal = await budgetRefusal(logPath, deps.config.budget);
@@ -72,7 +76,7 @@ async function handOffWhileDisabled(request: DelegateRequest, deps: DelegateDeps
   return { ...handoff, reason: 'disabled' };
 }
 
-async function runDeepseekTask(request: DelegateRequest, plan: WorkerRoutePlan, base: DecisionBase, deps: DelegateDeps, startedAt: number): Promise<DelegateResult> {
+async function runDeepseekTask(request: DelegateRequest, plan: Exclude<SmartRoutePlan, { tier: 'claude' }>, base: DecisionBase, deps: DelegateDeps, startedAt: number): Promise<DelegateResult> {
   const { config } = deps;
   const { tier, model, effort } = plan;
   const provider = config.providers[plan.provider];
@@ -100,7 +104,7 @@ async function runDeepseekTask(request: DelegateRequest, plan: WorkerRoutePlan, 
   const reason = workerReason ?? testEscalation(testOutcome) ?? retryEscalation(retries, config.retryThreshold);
   const costUsd = outcome.stream.costUsd(provider.models, model);
   const status = reason ? 'escalate' : 'done';
-  await appendDecision(logPath, { ...base, ...outcome.stream.usage, model, effort, costUsd, status, reason, durationMs: Date.now() - startedAt, retries });
+  await appendDecision(logPath, { ...base, ...outcome.stream.usage, model, effort, costUsd: costUsd + plan.checkCostUsd, status, reason, durationMs: Date.now() - startedAt, retries });
   const report = { summary: truncate(outcome.stream.result?.text ?? '', SUMMARY_LIMIT), changedFiles: outcome.stream.changedFiles, tier, model, effort, costUsd };
   return reason ? { status: 'escalate', reason, ...report } : { status: 'done', ...report };
 }

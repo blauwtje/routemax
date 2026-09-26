@@ -23,6 +23,9 @@ function routerOffDeps(): DelegateDeps {
     ensureProxy: async () => {
       throw new Error('No proxy starts while the router is off.');
     },
+    fetchImpl: async () => {
+      throw new Error('No fetch happens while the router is off.');
+    },
   };
 }
 

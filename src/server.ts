@@ -38,7 +38,7 @@ function delegateInputShape(types: string[]) {
 }
 
 async function runDelegate(input: DelegateRequest) {
-  const result = await delegate(input, { config, homeDir: homedir(), cwd: process.cwd(), env: process.env, readApiKey, ensureProxy });
+  const result = await delegate(input, { config, homeDir: homedir(), cwd: process.cwd(), env: process.env, readApiKey, ensureProxy, fetchImpl: fetch });
   return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }], isError: result.status === 'refused' };
 }
 
