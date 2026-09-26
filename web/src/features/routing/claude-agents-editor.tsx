@@ -6,9 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { EFFORT_ORDER, type Effort } from '../../../../src/config/config-schema';
+import { SELECT_CLASS } from './tier-styles';
 
-const SELECT_CLASS =
-  'claude-agents-editor-select h-8 w-full rounded-lg border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 const CARD_CLASS = 'flex flex-col divide-y rounded-xl bg-card px-4 text-card-foreground shadow-(--shadow-card)';
 const REMOVE_CLASS = 'text-muted-foreground hover:text-destructive';
 

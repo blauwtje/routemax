@@ -1,6 +1,7 @@
 import { Label } from '@/components/ui/label';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { EFFORT_ORDER } from '../../../../src/config/config-schema';
+import { SELECT_CLASS } from './tier-styles';
 
 export function EffortMapEditor({ form }: { form: ConfigForm }) {
   return (
@@ -17,7 +18,7 @@ export function EffortMapEditor({ form }: { form: ConfigForm }) {
             <Label htmlFor={`effort-map-${claudeEffort}`}>{claudeEffort}</Label>
             <select
               id={`effort-map-${claudeEffort}`}
-              className="effort-map-editor-select h-8 w-full rounded-lg border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className={`effort-map-editor-select ${SELECT_CLASS}`}
               {...form.register(`effortMap.${claudeEffort}`)}
             >
               {EFFORT_ORDER.map((workerEffort) => (

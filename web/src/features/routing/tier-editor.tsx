@@ -2,15 +2,9 @@ import { useWatch } from 'react-hook-form';
 import { Label } from '@/components/ui/label';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { EFFORT_ORDER } from '../../../../src/config/config-schema';
+import { SELECT_CLASS, TIER_DOTS } from './tier-styles';
 
 const WORKER_TIERS = ['flash-low', 'flash-high', 'pro-high'] as const;
-const TIER_DOTS: Record<(typeof WORKER_TIERS)[number], string> = {
-  'flash-low': 'bg-chart-1',
-  'flash-high': 'bg-chart-2',
-  'pro-high': 'bg-chart-3',
-};
-const SELECT_CLASS =
-  'tier-editor-select h-8 w-full rounded-lg border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
 
 export function TierEditor({ form }: { form: ConfigForm }) {
   const providers = useWatch({ control: form.control, name: 'providers' }) ?? {};

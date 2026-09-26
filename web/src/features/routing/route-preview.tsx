@@ -9,19 +9,9 @@ import { api } from '@/lib/browser-api';
 import { describeError } from '@/lib/format';
 import { EFFORT_ORDER, TIER_ORDER, type Effort, type Tier } from '../../../../src/config/config-schema';
 import { ListInput } from './list-input';
+import { SELECT_CLASS, TIER_DOTS } from './tier-styles';
 
 type PreviewState = { kind: 'idle' } | { kind: 'running' } | { kind: 'planned'; plan: RoutePlan } | { kind: 'failed'; message: string };
-
-const SELECT_CLASS =
-  'route-preview-select h-8 w-full rounded-lg border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50';
-
-// Same colors as the tier dots in tier-editor.tsx; claude takes the accent.
-const TIER_DOTS: Record<Tier, string> = {
-  'flash-low': 'bg-chart-1',
-  'flash-high': 'bg-chart-2',
-  'pro-high': 'bg-chart-3',
-  claude: 'bg-primary',
-};
 
 function describePlan(plan: RoutePlan): string {
   const raised = plan.raisedBy === null ? 'No rule raised it.' : `Raised by rule ${plan.raisedBy}.`;

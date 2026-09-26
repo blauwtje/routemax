@@ -31,10 +31,12 @@ function SaveStatus({ saveState, onReload }: { saveState: SaveState; onReload: (
         <Alert variant="destructive">
           <AlertTitle>The config changed since this page loaded it</AlertTitle>
           <AlertDescription>
-            Nothing was saved. Reload to see the current version; the edits on this page are then lost.
-            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={onReload}>
-              Reload
-            </Button>
+            <div className="flex flex-col items-start gap-2">
+              <p>Nothing was saved. Reload to see the current version; the edits on this page are then lost.</p>
+              <Button type="button" variant="outline" size="sm" onClick={onReload}>
+                Reload
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       );

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { TIER_ORDER } from '../../../../src/config/config-schema';
 import { ListInput } from './list-input';
+import { SELECT_CLASS } from './tier-styles';
 
 const LIST_FIELDS = [
   ['taskTypes', 'Task types'],
@@ -44,7 +45,7 @@ export function RuleEditor({ form }: { form: ConfigForm }) {
             <Label htmlFor={`rule-${index}-tier`}>Raise to tier</Label>
             <select
               id={`rule-${index}-tier`}
-              className="rule-editor-select h-8 w-full rounded-lg border border-input bg-card px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              className={SELECT_CLASS}
               {...form.register(`rules.${index}.tier`)}
             >
               {TIER_ORDER.map((tier) => (
