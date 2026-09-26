@@ -4999,7 +4999,7 @@ Depends on: Task 37
 Files:
 - Create: `src/ui/run-ui.ts`
 - Create: `bin/routemax.mjs`
-- Modify: `package.json` (`bin`)
+- Modify: `package.json`
 - Test: `test/integration/routemax-bin.test.ts`
 
 Step 1: Write the failing test, `test/integration/routemax-bin.test.ts`
@@ -5650,7 +5650,7 @@ git commit -m "feat(web): show the router state through the API client" -m "Plan
 Depends on: Task 44
 
 Files:
-- Modify: `web/package.json` (`dependencies`)
+- Modify: `web/package.json`
 - Modify: `package-lock.json`
 - Create: `web/src/components/ui` (the files `shadcn add` writes)
 - Create: `web/src/lib/api-types.ts`
