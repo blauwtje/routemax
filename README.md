@@ -8,9 +8,21 @@
 2. Run `npm run setup`, then restart Claude Code.
 3. Run `npm run doctor`. Every line should start with `OK`; a `FIX` line says what to do.
 
-Setup installs the dependencies, creates `~/.claude-deepseek/` and adds its files to your chezmoi source, adds the Claude agent files through chezmoi, and registers the server for every project. Running it again changes nothing that is already in place.
+Setup installs the dependencies, builds the page, links the `routemax` command with `npm link`, creates `~/.claude-deepseek/` and adds its files to your chezmoi source, writes the config to `~/.config/routemax/config.json` and adds it to your chezmoi source, adds the Claude agent files through chezmoi, and registers the server for every project. Running it again changes nothing that is already in place.
 
 The server's instructions tell the Max session to hand search, summaries, tests, small edits and specified builds to `delegate`, so you do not have to ask for it.
+
+## The page
+
+Run `routemax ui` in any terminal. It opens a local page in your browser and runs until Ctrl-C.
+
+- Overview: the switch that turns `delegate` on and off in open sessions, spend per provider and the doctor lines.
+- History: every `delegate` call with its tier, provider, cost and status.
+- Routing: the rules, each tier's provider, model and effort, the effort map, the Claude agents, and a preview of where a task would go.
+- Providers: base URL, models and prices, the Keychain key and a test call per provider.
+- Settings: budget, timeouts and the test command per project.
+
+Switched off, a `delegate` call returns `use_claude` with `reason: "disabled"` and starts no worker. A save checks every field first, keeps the previous version for Restore, and runs `chezmoi re-add` on the config. The page listens only on 127.0.0.1 and needs the token in the URL it opens.
 
 ## Details
 
@@ -33,21 +45,21 @@ The result has a `status`:
 
 Each call appends one line to `~/.local/state/deepseek-delegate/decisions.jsonl`. The sum of its `costUsd` is the spend counted against the cap.
 
-### config/routing.json
+### The config file
 
-The server reads the file when it starts. After an edit, reconnect the server with `/mcp` or restart Claude Code.
+The config lives in `~/.config/routemax/config.json`. The first run of setup, the server, the doctor or the page creates it from `config/routing.json` and keeps that original in `~/.local/state/routemax/backups/`. The server re-reads the file after every change, so an edit on the page or by hand applies to the next `delegate` call without a restart; an invalid file is ignored and the previous config stays.
 
-- `tiers`: the DeepSeek model and effort of `flash-low`, `flash-high` and `pro-high`.
+- `tiers`: the provider, model and effort of `flash-low`, `flash-high` and `pro-high`.
 - `rules`: each rule has an `id`, a `tier`, and any of `taskTypes`, `keywords` (whole words in the task text), `keywordExemptTaskTypes` (task types the keywords never raise) and `flags`. A task goes to the highest tier among its matching rules, and never below `requestedTier`.
 - `effortMap`: how a caller's `claudeEffort` maps to a worker effort.
 - `claude`: the agents a `claude`-tier task may name, which task type gets which agent, and `defaultAgent` for the rest. The agent files live in `agents/`.
 - `budget`: `totalUsd` caps all spend and `perCallUsd` stops a single call.
-- `prices`: USD per 1M tokens per model. Keep them in line with DeepSeek's pricing page.
+- `providers`: per provider its base URL, Keychain service, models with USD per 1M tokens, efforts, whether it is enabled, and its repair-proxy (port, log file and telemetry file) or `null`.
 - `workerTimeoutMs` and `testTimeoutMs`: wall-clock limits for the worker and the test command.
 - `retryThreshold`: `null` only logs repair-proxy retries. A number escalates a call with more retries than that.
 - `projects`: a test command per absolute project path, for example `{ "/Users/me/code/app": { "testCommand": "npm test" } }`. The worker may run exactly that command, and the server runs it after the worker.
 - `exploreRedirect`: the switch for the optional hook below.
-- `proxy`: the repair-proxy folder, its log file and its telemetry file. A proxy that `delegate` or `npm run doctor` starts writes its telemetry to this path.
+- `proxy`: the repair-proxy folder. A proxy that `delegate` or `npm run doctor` starts writes its telemetry to its provider's telemetry path.
 
 ### Optional: send Explore to delegate
 
