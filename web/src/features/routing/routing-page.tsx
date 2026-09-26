@@ -8,6 +8,7 @@ import { api } from '@/lib/browser-api';
 import { useWatch } from 'react-hook-form';
 import { ClaudeAgentsEditor } from './claude-agents-editor';
 import { EffortMapEditor } from './effort-map-editor';
+import { RoutePreview } from './route-preview';
 import { RuleEditor } from './rule-editor';
 import { TierEditor } from './tier-editor';
 import { tierWarnings } from './tier-warnings';
@@ -40,6 +41,7 @@ export function RoutingPage() {
           <EffortMapEditor form={form} />
           <ClaudeAgentsEditor form={form} />
           <RuleEditor form={form} />
+          <RoutePreview form={form} />
           <SaveBar
             saveState={saveState}
             dirty={form.formState.isDirty}
