@@ -77,7 +77,6 @@ const peakSchema = z.object({
 const providerSchema = z.object({
   name: z.string().min(1),
   baseUrl: z.url(),
-  keychainService: z.string().min(1).optional(),
   keyVariable: z.string().min(1).optional(),
   peak: peakSchema.optional(),
   models: z.record(z.string().min(1), modelPriceSchema),

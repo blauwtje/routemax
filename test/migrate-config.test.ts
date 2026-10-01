@@ -35,7 +35,6 @@ describe('migrateConfig', () => {
     expect(migrated().providers.deepseek).toEqual({
       name: 'DeepSeek',
       baseUrl: 'https://api.deepseek.com/anthropic',
-      keychainService: 'deepseek_api_key',
       keyVariable: 'DEEPSEEK_API_KEY',
       models: v1.prices,
       efforts: [...EFFORT_ORDER],
@@ -48,7 +47,6 @@ describe('migrateConfig', () => {
     expect(migrated().providers.openrouter).toEqual({
       name: 'OpenRouter',
       baseUrl: 'https://openrouter.ai/api',
-      keychainService: 'openrouter_api_key',
       keyVariable: 'OPENROUTER_API_KEY',
       models: {},
       efforts: [...EFFORT_ORDER],

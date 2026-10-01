@@ -23,7 +23,7 @@ export function AddProviderForm({ form, onAdded }: { form: ConfigForm; onAdded: 
   function add() {
     form.setValue(
       `providers.${providerId}`,
-      { name, baseUrl, keychainService: `${providerId}_api_key`, models: {}, efforts: [...EFFORT_ORDER], enabled: false, repairProxy: null },
+      { name, baseUrl, keyVariable: `${providerId.toUpperCase()}_API_KEY`, models: {}, efforts: [...EFFORT_ORDER], enabled: false, repairProxy: null },
       { shouldDirty: true },
     );
     setProviderId('');

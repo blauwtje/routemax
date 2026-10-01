@@ -19,8 +19,8 @@ export function ProviderFields({ form, providerId }: { form: ConfigForm; provide
           <Field label="Base URL" htmlFor={field('base-url')}>
             <Input data-mono autoComplete="off" spellCheck={false} {...form.register(`providers.${providerId}.baseUrl`)} />
           </Field>
-          <Field label="Keychain service" htmlFor={field('keychain')}>
-            <Input data-mono autoComplete="off" spellCheck={false} {...form.register(`providers.${providerId}.keychainService`)} />
+          <Field label="Key variable" htmlFor={field('key-variable')}>
+            <Input data-mono autoComplete="off" spellCheck={false} {...form.register(`providers.${providerId}.keyVariable`)} />
           </Field>
         </div>
       </SettingsGroup>

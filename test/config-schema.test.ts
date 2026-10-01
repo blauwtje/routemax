@@ -27,6 +27,11 @@ describe('configIssues', () => {
     expect(configIssues(config)).toEqual([]);
   });
 
+  it('drops a leftover keychainService from a provider', () => {
+    const provider = { ...validConfig().providers.deepseek, keychainService: 'deepseek_api_key' };
+    expect(configSchema.parse({ ...validConfig(), providers: { deepseek: provider } }).providers.deepseek).not.toHaveProperty('keychainService');
+  });
+
   it('names the lane field when the fallback points at an unknown provider', () => {
     const config = validConfig();
     config.lanes.fallback = { provider: 'zai', model: 'glm-5.3' };

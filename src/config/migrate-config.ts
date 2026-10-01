@@ -17,7 +17,6 @@ export function migrateConfig(raw: unknown): unknown {
       deepseek: {
         name: 'DeepSeek',
         baseUrl: 'https://api.deepseek.com/anthropic',
-        keychainService: 'deepseek_api_key',
         keyVariable: 'DEEPSEEK_API_KEY',
         models: prices,
         efforts: [...EFFORT_ORDER],
@@ -27,7 +26,6 @@ export function migrateConfig(raw: unknown): unknown {
       openrouter: {
         name: 'OpenRouter',
         baseUrl: 'https://openrouter.ai/api',
-        keychainService: 'openrouter_api_key',
         keyVariable: 'OPENROUTER_API_KEY',
         models: {},
         efforts: [...EFFORT_ORDER],

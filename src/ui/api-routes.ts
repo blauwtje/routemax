@@ -12,7 +12,6 @@ import { runDoctorChecks, type DoctorDeps } from '../doctor/doctor-checks';
 import { isRouterEnabled, setRouterEnabled } from '../router-switch/router-switch';
 import { previewRoute } from '../routing/smart-route';
 import { readLaneKey } from '../worker/read-lane-key';
-import { keyIssues, storeApiKey } from '../worker/store-api-key';
 import { decisionStats, readDecisions } from './decision-stats';
 import { readProviderTests, recordProviderTest, testProvider } from './provider-test';
 import type { ApiResponse, ApiRoute } from './ui-server';
@@ -30,7 +29,6 @@ export interface UiDeps {
 const switchBodySchema = z.object({ enabled: z.boolean() });
 const saveBodySchema = z.object({ config: z.unknown(), baseHash: z.string() });
 const restoreBodySchema = z.object({ baseHash: z.string() });
-const keyBodySchema = z.object({ key: z.string() });
 const planRequestSchema = z.object({
   task: z.string(),
   taskType: z.string(),
@@ -132,20 +130,6 @@ function keyRoutes(deps: UiDeps): ApiRoute[] {
         const { providers } = loadConfig(deps.configPath);
         const keys = Object.entries(providers).map(([id, provider]) => [id, { present: hasKey(deps.homeDir, provider.keyVariable) }] as const);
         return ok({ keys: Object.fromEntries(keys) });
-      },
-    },
-    {
-      method: 'PUT',
-      pattern: /^\/api\/keys\/([^/]+)$/,
-      handle: async ({ params: [providerId], body }) => {
-        const { providers } = loadConfig(deps.configPath);
-        if (!Object.hasOwn(providers, providerId)) return missing([`providers.${providerId}: no such provider`]);
-        const parsed = keyBodySchema.safeParse(body);
-        if (!parsed.success) return invalid(formatIssues(parsed.error));
-        const issues = keyIssues(parsed.data.key);
-        if (issues.length > 0) return invalid(issues);
-        await storeApiKey(providers[providerId].keychainService ?? '', parsed.data.key);
-        return ok({ present: hasKey(deps.homeDir, providers[providerId].keyVariable) });
       },
     },
   ];

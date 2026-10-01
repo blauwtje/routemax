@@ -36,7 +36,7 @@ export function ProvidersPage() {
         <>
           <div className="providers-page-intro flex flex-wrap items-end justify-between gap-4">
             <p className="max-w-[70ch] text-sm text-pretty text-muted-foreground">
-              Keys are stored in the macOS Keychain, never in the config file on disk. A test call is real and billed against the saved configuration.
+              Keys live in ~/.config/routemax/keys.env, never in the config file. A test call is real and billed against the saved configuration.
             </p>
             <AddProviderForm form={form} onAdded={setOpenProviderId} />
           </div>
@@ -82,7 +82,6 @@ export function ProvidersPage() {
             onOpenChange={(open) => {
               if (!open) setOpenProviderId(null);
             }}
-            onKeyStored={keys.refresh}
             onTested={tests.refresh}
           />
           <SaveBar
