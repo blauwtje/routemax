@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { AppShell } from '@/components/app-shell/app-shell';
 import { ToastHost } from '@/components/toast/toast';
-import { HistoryPage } from '@/features/history/history-page';
+import { ActivityPage } from '@/features/activity/activity-page';
 import { OverviewPage } from '@/features/overview/overview-page';
 import { RoutingPage } from '@/features/routing/routing-page';
 import { SettingsPage } from '@/features/settings/settings-page';
@@ -10,7 +10,7 @@ import { RouterSwitchProvider } from '@/hooks/use-router-switch';
 
 const SECTION_PAGES: Record<Section, ComponentType> = {
   overview: OverviewPage,
-  activity: HistoryPage,
+  activity: ActivityPage,
   routing: RoutingPage,
   settings: SettingsPage,
 };

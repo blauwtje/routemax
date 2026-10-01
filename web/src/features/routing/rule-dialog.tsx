@@ -1,13 +1,13 @@
-import { Trash2Icon } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { Controller } from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Field } from '@/components/field';
-import { Input } from '@/components/ui/input';
-import { NativeSelect } from '@/components/ui/native-select';
+import { Button } from '@/components/button/button';
+import { Dialog } from '@/components/dialog/dialog';
+import { Select, type SelectOption } from '@/components/select/select';
+import { TextField } from '@/components/text-field/text-field';
 import type { ConfigForm } from '@/hooks/use-config-form';
 import { TIER_ORDER } from '../../../../src/config/config-schema';
-import { ListInput } from './list-input';
+import styles from './rule-dialog.module.css';
 
 export const RULE_LIST_FIELDS = [
   ['taskTypes', 'Task types', 'task type', 'review, refactor'],
@@ -16,85 +16,113 @@ export const RULE_LIST_FIELDS = [
   ['flags', 'Flags', 'flag', 'irreversible'],
 ] as const;
 
-interface RuleDialogProps {
-  form: ConfigForm;
-  open: boolean;
-  /** Index into the form's `rules` array; stays set until the close finishes so the content stays mounted. */
-  index: number | null;
-  onClose: () => void;
-  /** Runs once the close animation ends; the caller clears the index here. */
-  onCloseComplete: () => void;
-  onRemove: (index: number) => void;
+const TIER_LABELS = { 'flash-low': 'Flash low', 'flash-high': 'Flash high', 'pro-high': 'Pro high', claude: 'Claude' } as const;
+
+export const TIER_OPTIONS: SelectOption[] = TIER_ORDER.map((tier) => ({ value: tier, label: TIER_LABELS[tier], tier }));
+
+function splitList(text: string): string[] {
+  return text
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
 }
 
-// Edits write straight into the config form, so the page's SaveBar saves them with everything else.
-// The content stays mounted through the close so Base UI can return focus to the row that opened it.
-export function RuleDialog({ form, open, index, onClose, onCloseComplete, onRemove }: RuleDialogProps) {
+type ListFieldProps = { label: string; placeholder: string; value: string[] | undefined; onChange: (next: string[]) => void };
+
+// Keeps the raw text so a trailing comma survives typing; the form holds the split list.
+function ListField({ label, placeholder, value, onChange }: ListFieldProps) {
+  const joined = (value ?? []).join(', ');
+  const [text, setText] = useState(joined);
+  const [shownJoined, setShownJoined] = useState(joined);
+  if (joined !== shownJoined) {
+    setShownJoined(joined);
+    setText(joined);
+  }
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => !nextOpen && onClose()}
-      onOpenChangeComplete={(nextOpen) => !nextOpen && onCloseComplete()}
-    >
-      {index !== null && (
-        <DialogContent className="rule-dialog gap-5 p-5 sm:max-w-xl sm:p-6">
-          <RuleFields form={form} index={index} />
-          <DialogFooter className="rule-dialog-footer -mx-5 -mb-5 flex-row items-center justify-between gap-3 border-t border-border px-5 py-3 sm:-mx-6 sm:-mb-6 sm:px-6">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-muted-foreground hover:text-destructive"
-              onClick={() => onRemove(index)}
-            >
-              <Trash2Icon aria-hidden="true" />
-              Remove rule
-            </Button>
-            <DialogClose render={<Button type="button" />}>Done</DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      )}
-    </Dialog>
+    <TextField
+      mono
+      label={label}
+      description="Comma-separated"
+      placeholder={placeholder}
+      autoComplete="off"
+      spellCheck={false}
+      value={text}
+      onChange={(event) => {
+        const next = splitList(event.target.value);
+        setText(event.target.value);
+        setShownJoined(next.join(', '));
+        onChange(next);
+      }}
+    />
   );
 }
 
-function RuleFields({ form, index }: { form: ConfigForm; index: number }) {
-  const nameError = form.formState.errors.rules?.[index]?.id?.message;
+type RuleDialogProps = {
+  form: ConfigForm;
+  open: boolean;
+  /** Index into the form's `rules` array. */
+  index: number;
+  onOpenChange: (open: boolean) => void;
+  onRemove: (index: number) => void;
+};
+
+// Edits write straight into the config form, so autosave picks them up with everything else.
+export function RuleDialog({ form, open, index, onOpenChange, onRemove }: RuleDialogProps) {
+  const tierId = `rule-${index}-tier`;
   return (
-    <>
-      <DialogHeader>
-        <p className="font-mono text-xs tracking-wide text-muted-foreground uppercase">Rule {String(index + 1).padStart(2, '0')}</p>
-        <DialogTitle className="font-display text-2xl leading-tight font-normal">Edit rule</DialogTitle>
-        <DialogDescription className="text-pretty">
-          A task that matches any list below is raised to this rule's tier. Changes are kept until you save the page.
-        </DialogDescription>
-      </DialogHeader>
-      <fieldset className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
-        <legend className="sr-only">Rule {index + 1} fields</legend>
-        <Field label="Name" htmlFor={`rule-${index}-id`} error={nameError}>
-          <Input autoComplete="off" spellCheck={false} {...form.register(`rules.${index}.id`)} />
-        </Field>
-        <Field label="Raise to tier" htmlFor={`rule-${index}-tier`}>
-          <NativeSelect {...form.register(`rules.${index}.tier`)}>
-            {TIER_ORDER.map((tier) => (
-              <option key={tier} value={tier}>
-                {tier}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      size="wide"
+      title="Edit rule"
+      description="A task that matches any list below is raised to this rule's tier. Changes save as you make them."
+      meta={`Rule ${String(index + 1).padStart(2, '0')}`}
+      footerStart={
+        <Button variant="danger" icon={<Trash2 aria-hidden="true" />} onClick={() => onRemove(index)}>
+          Remove rule
+        </Button>
+      }
+      footerEnd={<Button onClick={() => onOpenChange(false)}>Close</Button>}
+    >
+      <div className={styles.grid}>
+        <Controller
+          control={form.control}
+          name={`rules.${index}.id`}
+          render={({ field, fieldState }) => (
+            <TextField
+              mono
+              label="Rule id"
+              autoComplete="off"
+              spellCheck={false}
+              error={fieldState.error?.message}
+              name={field.name}
+              value={field.value ?? ''}
+              onChange={(event) => field.onChange(event.target.value)}
+              onBlur={field.onBlur}
+            />
+          )}
+        />
+        <Controller
+          control={form.control}
+          name={`rules.${index}.tier`}
+          render={({ field }) => (
+            <div className={styles.selectField}>
+              <label className={styles.label} htmlFor={tierId}>
+                Raise to tier
+              </label>
+              <Select id={tierId} options={TIER_OPTIONS} value={field.value ?? null} onValueChange={field.onChange} />
+            </div>
+          )}
+        />
         {RULE_LIST_FIELDS.map(([name, label, , example]) => (
           <Controller
             key={name}
             control={form.control}
             name={`rules.${index}.${name}`}
-            render={({ field: listField }) => (
-              <Field label={label} htmlFor={`rule-${index}-${name}`} help="Comma-separated">
-                <ListInput placeholder={example} value={listField.value} onChange={listField.onChange} />
-              </Field>
-            )}
+            render={({ field }) => <ListField label={label} placeholder={example} value={field.value} onChange={field.onChange} />}
           />
         ))}
-      </fieldset>
-    </>
+      </div>
+    </Dialog>
   );
 }

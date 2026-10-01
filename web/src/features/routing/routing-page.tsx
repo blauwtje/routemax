@@ -1,173 +1,248 @@
-import { Fragment } from 'react';
-import { AdvancedSection } from '@/components/advanced-section';
-import { SaveBar } from '@/components/save-bar';
-import { SettingsGroup } from '@/components/settings-group';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { useConfigForm, type ConfigForm } from '@/hooks/use-config-form';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { Controller, useWatch } from 'react-hook-form';
+import { Button } from '@/components/button/button';
+import { Badge, StatusDot, type Tone } from '@/components/badge/badge';
+import { List, ListRow } from '@/components/list/list';
+import { Switch } from '@/components/switch/switch';
+import { TextField } from '@/components/text-field/text-field';
+import { toast } from '@/components/toast/toast';
+import { useConfigForm, type SaveState } from '@/hooks/use-config-form';
 import { usePoll } from '@/hooks/use-poll';
 import type { ProviderTestsResponse } from '@/lib/api-types';
 import { api } from '@/lib/browser-api';
-import { getTierColors } from '@/lib/tier-colors';
-import { Controller, useWatch } from 'react-hook-form';
-import { TIER_ORDER } from '../../../../src/config/config-schema';
-import { ClaudeAgentsEditor } from './claude-agents-editor';
-import { EffortMapEditor } from './effort-map-editor';
-import { RoutePreview } from './route-preview';
-import { RuleEditor } from './rule-editor';
-import { TierEditor } from './tier-editor';
+import { ProviderSection } from './provider-section';
+import { RulesSection } from './rules-section';
+import { TierDialog, WORKER_TIERS, type WorkerTierName } from './tier-dialog';
 import { tierWarnings } from './tier-warnings';
+import { TryTask } from './try-task';
+import styles from './routing-page.module.css';
 
 const loadProviderTests = () => api.request<ProviderTestsResponse>('GET', '/api/provider-tests');
 
-// The ladder is a decorative summary of tier order; the TierEditor table below is the
-// authoritative, fully accessible source for each tier's provider/model/effort.
-function TierLadder() {
+const SAVE_STATUS: Record<SaveState['kind'], { tone: Tone; text: string }> = {
+  idle: { tone: 'neutral', text: 'Changes save as you make them' },
+  saving: { tone: 'busy', text: 'Saving…' },
+  saved: { tone: 'ok', text: 'All changes saved' },
+  invalid: { tone: 'warn', text: 'Not saved: fix the marked fields' },
+  stale: { tone: 'warn', text: 'Not saved: config changed elsewhere' },
+  failed: { tone: 'danger', text: 'Not saved' },
+};
+
+/** Zod reports an emptied number box as NaN in its own words; say what to do instead. */
+function fieldMessage(error: { message?: string } | undefined): string | undefined {
+  if (error === undefined) return undefined;
+  const message = error.message ?? '';
+  if (message === '' || /NaN|expected number/i.test(message)) return 'Enter a number.';
+  return message;
+}
+
+function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
+  const headingId = useId();
   return (
-    <div
-      className="tier-ladder flex items-center"
-      role="img"
-      aria-label={`Tier ladder, in order of escalation: ${TIER_ORDER.join(', ')}`}
-    >
-      {TIER_ORDER.map((tier, i) => {
-        const colors = getTierColors(tier);
-        return (
-          <Fragment key={tier}>
-            <div aria-hidden="true" className="tier-ladder-node flex min-w-0 shrink-0 flex-col items-center gap-1.5">
-              <span className={`tier-ladder-dot size-7 shrink-0 rounded-full shadow-[0_0_10px_currentColor] ${colors.dot} ${colors.text}`} />
-              <span className="max-w-16 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[10px] text-muted-foreground">{tier}</span>
-            </div>
-            {i < TIER_ORDER.length - 1 && (
-              <div
-                aria-hidden="true"
-                className="tier-ladder-connector relative h-1 min-w-3 flex-1 -translate-y-2.5 overflow-hidden rounded-full"
-                style={{ background: `linear-gradient(to right, var(--tier-${tier}), var(--tier-${TIER_ORDER[i + 1]}))` }}
-              >
-                <span
-                  className="tier-ladder-pulse absolute inset-y-0 w-12 opacity-0"
-                  style={{ background: 'linear-gradient(to right, transparent, white, transparent)' }}
-                />
-              </div>
-            )}
-          </Fragment>
-        );
-      })}
-      <style>{`
-        @keyframes tier-ladder-pulse-travel {
-          from { transform: translateX(-3rem); }
-          to { transform: translateX(calc(100% + 3rem)); }
-        }
-        @media (prefers-reduced-motion: no-preference) {
-          html[data-router="on"] .tier-ladder-pulse {
-            opacity: 0.9;
-            animation: tier-ladder-pulse-travel 2.2s var(--ease-out-expo) infinite;
-          }
-        }
-      `}</style>
+    <section className={styles.group} aria-labelledby={headingId}>
+      <header className={styles.groupHead}>
+        <h2 id={headingId} className={styles.groupTitle}>
+          {title}
+        </h2>
+        <p className={styles.groupNote}>{description}</p>
+      </header>
+      <div className={styles.groupBody}>{children}</div>
+    </section>
+  );
+}
+
+function LoadingState() {
+  return (
+    <div className={styles.page} aria-busy="true">
+      <p className="visually-hidden" role="status">
+        Loading routing
+      </p>
+      <div className={styles.head}>
+        <h1 className={styles.title}>Routing</h1>
+      </div>
+      {[13, 9, 14, 12, 15].map((height) => (
+        <div key={height} className={styles.group} aria-hidden="true">
+          <div className={styles.groupHead}>
+            <span className={styles.skeletonLine} style={{ inlineSize: '7rem' }} />
+            <span className={styles.skeletonLine} style={{ inlineSize: '12rem', blockSize: '0.75rem' }} />
+          </div>
+          <div className={styles.groupBody}>
+            <span className={styles.skeletonBlock} style={{ blockSize: `${height}rem` }} />
+          </div>
+        </div>
+      ))}
     </div>
-  );
-}
-
-const SMART_ROUTING_DEFAULT = { enabled: true, checkTimeoutMs: 3000 };
-
-function SmartRoutingSwitch({ form }: { form: ConfigForm }) {
-  return (
-    <SettingsGroup
-      className="border-t-0 pt-0"
-      title="Smart routing"
-      description="Scores each task's text to pick its tier, model and effort. Only an unclear task gets a paid check by the cheapest DeepSeek model. Rules that keep a task on Claude still win. Off: the rules decide alone."
-    >
-      <Controller
-        control={form.control}
-        name="smartRouting"
-        render={({ field }) => {
-          // A config saved before smart routing existed has no object; the schema's default applies.
-          const smartRouting = field.value ?? SMART_ROUTING_DEFAULT;
-          return (
-            <div className="smart-routing-toggle flex items-center justify-between gap-4 rounded-md border border-border bg-well px-4 py-3 shadow-well">
-              <span className="flex flex-col gap-0.5">
-                <span className="font-medium">Route by task text</span>
-                <span className="font-mono text-xs text-muted-foreground">{smartRouting.enabled ? 'on: score, then check if unclear' : 'off: rules only'}</span>
-              </span>
-              <Switch
-                checked={smartRouting.enabled}
-                onCheckedChange={(checked) => field.onChange({ ...smartRouting, enabled: checked })}
-                aria-label="Smart routing"
-              />
-            </div>
-          );
-        }}
-      />
-    </SettingsGroup>
-  );
-}
-
-function RoutingPanel({ index, children }: { index: number; children: React.ReactNode }) {
-  return (
-    <Card className="routing-panel" style={{ '--panel-index': index } as React.CSSProperties}>
-      <CardContent className="pt-6">{children}</CardContent>
-    </Card>
   );
 }
 
 export function RoutingPage() {
   const { form, ready, loadError, saveState, undo, reload } = useConfigForm();
-  const tests = usePoll(loadProviderTests).state;
+  const { state: testsState } = usePoll(loadProviderTests);
+  const [dialog, setDialog] = useState<{ tier: WorkerTierName; open: boolean }>({ tier: WORKER_TIERS[0], open: false });
+  const providers = useWatch({ control: form.control, name: 'providers' });
   const tiers = useWatch({ control: form.control, name: 'tiers' });
-  const warnings = tiers === undefined || tests.kind !== 'loaded' ? [] : tierWarnings(tiers, tests.value);
+  const smartEnabled = useWatch({ control: form.control, name: 'smartRouting.enabled' });
+  const errors = form.formState.errors;
+
+  // The toast callbacks live in refs so a toast is raised once per save state, not once per render.
+  const actions = useRef({ undo, reload });
+  actions.current = { undo, reload };
+  const undoing = useRef(false);
+  const handled = useRef<SaveState | null>(null);
+
+  useEffect(() => {
+    if (handled.current === saveState) return;
+    handled.current = saveState;
+    if (saveState.kind === 'saving') return;
+    const wasUndo = undoing.current;
+    undoing.current = false;
+    if (saveState.kind === 'saved') {
+      if (wasUndo) {
+        toast.saved('Change undone.');
+        return;
+      }
+      toast.saved(saveState.chezmoiMessage || undefined, () => {
+        undoing.current = true;
+        void actions.current.undo();
+      });
+    } else if (saveState.kind === 'stale') {
+      toast.stale(() => actions.current.reload());
+    } else if (saveState.kind === 'failed') {
+      toast.failed('Could not save', saveState.message);
+    }
+  }, [saveState]);
+
+  if (loadError !== null) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.head}>
+          <h1 className={styles.title}>Routing</h1>
+        </div>
+        <div className={styles.problem} role="alert">
+          <StatusDot tone="danger" />
+          <div className={styles.problemText}>
+            <h2 className={styles.problemTitle}>Routing could not be loaded</h2>
+            <p className={styles.problemDetail}>{loadError}</p>
+          </div>
+          <Button type="button" variant="secondary" onClick={reload}>
+            Try again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!ready) return <LoadingState />;
+
+  const status = SAVE_STATUS[saveState.kind];
+  const tests = testsState.kind === 'loaded' ? testsState.value : null;
 
   return (
-    <div className="routing-page flex flex-col gap-6">
-      {loadError !== null && (
-        <Alert variant="destructive">
-          <AlertDescription>{loadError}</AlertDescription>
-        </Alert>
-      )}
-      {!ready && loadError === null && <p className="text-sm text-muted-foreground">Loading…</p>}
-      {ready && (
-        <>
-          <RoutingPanel index={0}>
-            <div className="flex flex-col gap-8">
-              <TierLadder />
-              <TierEditor form={form} />
+    <div className={styles.page}>
+      <div className={styles.head}>
+        <div>
+          <h1 className={styles.title}>Routing</h1>
+          <p className={styles.lede}>Where tasks go, which rules steer them, and a way to check before you spend.</p>
+        </div>
+        <p className={styles.status} data-state={saveState.kind}>
+          <StatusDot tone={status.tone} />
+          <span>{status.text}</span>
+        </p>
+      </div>
+
+      {saveState.kind === 'invalid' && saveState.issues.length > 0 && Object.keys(errors).length === 0 ? (
+        <div className={styles.issues} role="alert">
+          <StatusDot tone="warn" />
+          <ul>
+            {saveState.issues.map((issue) => (
+              <li key={issue}>{issue}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <Section title="Tiers" description="Where each tier sends a task. Tasks that end on Claude use the Claude agents below.">
+        <List aria-label="Tiers">
+          {WORKER_TIERS.map((tierName) => {
+            const tier = tiers?.[tierName];
+            const providerName = tier !== undefined && providers !== undefined && Object.hasOwn(providers, tier.provider) ? providers[tier.provider].name : tier?.provider;
+            const warnings = tier !== undefined && tests !== null ? tierWarnings({ [tierName]: tier }, tests) : [];
+            const untested = warnings.length > 0 && warnings[0].includes('never been tested');
+            return (
+              <ListRow
+                key={tierName}
+                title={
+                  <span className={styles.tierName}>
+                    <Badge tier={tierName}>{tierName}</Badge>
+                  </span>
+                }
+                subtitle={tier ? `${providerName} · ${tier.model} · ${tier.effort}` : undefined}
+                status={warnings.length > 0 ? <Badge tone="warn">{untested ? 'Untested' : 'Test failed'}</Badge> : undefined}
+                invalid={warnings.length > 0 && !untested}
+                openLabel={`Edit tier ${tierName}`}
+                onOpen={() => setDialog({ tier: tierName, open: true })}
+              />
+            );
+          })}
+        </List>
+        {WORKER_TIERS.flatMap((tierName) => {
+          const tier = tiers?.[tierName];
+          if (tier === undefined || tests === null) return [];
+          return tierWarnings({ [tierName]: tier }, tests).map((warning) => (
+            <p key={warning} className={styles.warning}>
+              <StatusDot tone="warn" />
+              <span>{warning}</span>
+            </p>
+          ));
+        })}
+      </Section>
+
+      <Section title="Smart routing" description="Score unclear tasks instead of falling straight to the rules. An unclear task can get one cheap paid check.">
+        <Controller
+          control={form.control}
+          name="smartRouting.enabled"
+          render={({ field }) => (
+            <div className={styles.toggleRow}>
+              <div>
+                <p className={styles.toggleTitle}>Smart routing</p>
+                <p className={styles.toggleNote}>Off means rules alone decide where a task goes.</p>
+              </div>
+              <Switch size="sm" aria-label="Smart routing" stateText={{ on: 'On', off: 'Off' }} checked={field.value ?? true} onCheckedChange={field.onChange} />
             </div>
-          </RoutingPanel>
-          <RoutingPanel index={1}>
-            <SmartRoutingSwitch form={form} />
-          </RoutingPanel>
-          <RoutingPanel index={2}>
-            <RoutePreview form={form} />
-          </RoutingPanel>
-          <AdvancedSection summary="Rules, the effort map and Claude agents">
-            <div className="flex flex-col gap-10">
-              <RuleEditor form={form} />
-              <EffortMapEditor form={form} />
-              <ClaudeAgentsEditor form={form} />
-            </div>
-          </AdvancedSection>
-          <SaveBar
-            saveState={saveState}
-            dirty={false}
-            previousExists
-            warnings={warnings}
-            onSave={() => undefined}
-            onRestore={() => void undo()}
-            onReload={reload}
-          />
-        </>
-      )}
-      <style>{`
-        @keyframes routing-panel-enter {
-          from { opacity: 0.001; transform: translateY(8px); }
-        }
-        @media (prefers-reduced-motion: no-preference) {
-          .routing-panel {
-            animation: routing-panel-enter var(--dur-panel) var(--ease-out-expo) both;
-            animation-delay: calc(var(--stagger-card) * var(--panel-index, 0));
-          }
-        }
-      `}</style>
+          )}
+        />
+        <TextField
+          label="Check timeout"
+          description="The paid check gives up after this long and the score decides."
+          type="number"
+          step="1"
+          min={0}
+          suffix="ms"
+          disabled={smartEnabled === false}
+          error={fieldMessage(errors.smartRouting?.checkTimeoutMs)}
+          {...form.register('smartRouting.checkTimeoutMs', { valueAsNumber: true })}
+        />
+      </Section>
+
+      <Section title="Providers" description="Who can run work, with the models and prices each offers.">
+        <ProviderSection form={form} />
+      </Section>
+
+      <Section title="Rules and agents" description="Rules raise a task to a tier. Agents and effort decide what runs on Claude.">
+        <RulesSection form={form} />
+      </Section>
+
+      <Section title="Try a task" description="See where a task would go with the values on this page, saved or not. It runs no worker and spends nothing.">
+        <TryTask form={form} />
+      </Section>
+
+      <TierDialog
+        form={form}
+        tier={dialog.tier}
+        tests={tests}
+        open={dialog.open}
+        onOpenChange={(open) => setDialog((current) => ({ ...current, open }))}
+      />
     </div>
   );
 }
