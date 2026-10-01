@@ -1,13 +1,15 @@
 @layer components {
   .list { margin: 0; padding: 0; list-style: none; border-block: var(--hairline) solid var(--line); }
-  .row { min-inline-size: 0; display: flex; align-items: center; gap: var(--space-3); padding-inline-end: var(--space-2); }
+  /* Narrow rows wrap the status and trailing controls under the name rather than clip it */
+  .row { min-inline-size: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); padding-inline-end: var(--space-2); }
   .row + .row, .row + .empty { border-block-start: var(--hairline) solid var(--line); }
 
   .open {
-    flex: 1;
+    flex: 1 1 8rem;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-4);
+    gap: var(--space-1) var(--space-4);
     min-inline-size: 0;
     min-block-size: 3.25rem;
     padding: var(--space-2) var(--space-3);
@@ -30,11 +32,11 @@
   .row[data-invalid] .subtitle { color: var(--danger); }
 
   .lead { flex: none; min-inline-size: 2.5ch; color: var(--ink-muted); font-family: var(--font-mono); font-size: var(--text-xs); font-variant-numeric: tabular-nums; }
-  .main { flex: 1; display: flex; flex-direction: column; min-inline-size: 0; }
+  .main { flex: 1 1 14ch; display: flex; flex-direction: column; min-inline-size: 0; }
   .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--weight-medium); }
   .subtitle { overflow: hidden; overflow-wrap: var(--list-subtitle-break, normal); text-overflow: ellipsis; white-space: var(--list-subtitle-wrap, nowrap); color: var(--ink-muted); font-family: var(--font-mono); font-size: var(--text-xs); }
   .status { flex: none; }
-  .trailing { flex: none; display: flex; align-items: center; gap: var(--space-2); }
+  .trailing { flex: none; margin-inline-start: auto; display: flex; align-items: center; gap: var(--space-2); }
 
   .empty { padding: var(--space-6) var(--space-3); color: var(--ink-muted); text-wrap: pretty; list-style: none; }
 

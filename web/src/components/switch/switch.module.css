@@ -18,7 +18,7 @@
     inline-size: var(--track-w);
     block-size: var(--track-h);
     padding: 0;
-    border: var(--hairline) solid var(--line-strong);
+    border: var(--hairline) solid var(--line-control);
     border-radius: var(--r-full);
     background: var(--track-off);
     box-shadow: var(--inset-field);

@@ -25,6 +25,8 @@
   /* Hairlines, derived from ink */
   --line: light-dark(oklch(0.2 0.01 265 / 0.1), oklch(1 0 0 / 0.07));
   --line-strong: light-dark(oklch(0.2 0.01 265 / 0.2), oklch(1 0 0 / 0.14));
+  /* Control boundaries: at least 3:1 on surface, so inputs and buttons read as controls */
+  --line-control: light-dark(oklch(0.2 0.01 265 / 0.5), oklch(1 0 0 / 0.35));
 
   /* Interaction washes, derived from ink */
   --hover: color-mix(in oklch, var(--ink) 6%, transparent);

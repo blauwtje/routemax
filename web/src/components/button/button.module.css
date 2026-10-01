@@ -41,7 +41,7 @@
   /* Secondary: same skeleton, raised surface with a hairline */
   .root[data-variant='secondary'] {
     background: var(--surface-2);
-    border-color: var(--line-strong);
+    border-color: var(--line-control);
     box-shadow: var(--elev-1);
   }
   .root[data-variant='secondary']:hover { background: color-mix(in oklch, var(--surface-2) 86%, var(--ink)); }
