@@ -112,7 +112,7 @@ function RoutingPanel({ index, children }: { index: number; children: React.Reac
 }
 
 export function RoutingPage() {
-  const { form, ready, previousExists, loadError, saveState, save, restore, reload } = useConfigForm();
+  const { form, ready, loadError, saveState, undo, reload } = useConfigForm();
   const tests = usePoll(loadProviderTests).state;
   const tiers = useWatch({ control: form.control, name: 'tiers' });
   const warnings = tiers === undefined || tests.kind !== 'loaded' ? [] : tierWarnings(tiers, tests.value);
@@ -148,11 +148,11 @@ export function RoutingPage() {
           </AdvancedSection>
           <SaveBar
             saveState={saveState}
-            dirty={form.formState.isDirty}
-            previousExists={previousExists}
+            dirty={false}
+            previousExists
             warnings={warnings}
-            onSave={() => void save()}
-            onRestore={() => void restore()}
+            onSave={() => undefined}
+            onRestore={() => void undo()}
             onReload={reload}
           />
         </>

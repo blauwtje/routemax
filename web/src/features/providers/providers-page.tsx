@@ -14,7 +14,7 @@ const loadKeys = () => api.request<KeysResponse>('GET', '/api/keys');
 const loadProviderTests = () => api.request<ProviderTestsResponse>('GET', '/api/provider-tests');
 
 export function ProvidersPage() {
-  const { form, ready, previousExists, loadError, saveState, save, restore, reload } = useConfigForm();
+  const { form, ready, loadError, saveState, undo, reload } = useConfigForm();
   const providers = useWatch({ control: form.control, name: 'providers' }) ?? {};
   const keys = usePoll(loadKeys);
   const tests = usePoll(loadProviderTests);
@@ -86,10 +86,10 @@ export function ProvidersPage() {
           />
           <SaveBar
             saveState={saveState}
-            dirty={form.formState.isDirty}
-            previousExists={previousExists}
-            onSave={() => void save()}
-            onRestore={() => void restore()}
+            dirty={false}
+            previousExists
+            onSave={() => undefined}
+            onRestore={() => void undo()}
             onReload={reload}
           />
         </>

@@ -37,11 +37,9 @@ export function SettingsPage() {
   const {
     form,
     ready,
-    previousExists,
     loadError,
     saveState,
-    save,
-    restore,
+    undo,
     reload,
   } = useConfigForm();
   const { state: statsState } = usePoll(loadStats);
@@ -219,10 +217,10 @@ export function SettingsPage() {
           </AdvancedSection>
           <SaveBar
             saveState={saveState}
-            dirty={form.formState.isDirty}
-            previousExists={previousExists}
-            onSave={() => void save()}
-            onRestore={() => void restore()}
+            dirty={false}
+            previousExists
+            onSave={() => undefined}
+            onRestore={() => void undo()}
             onReload={reload}
           />
         </>
