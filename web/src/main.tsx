@@ -6,7 +6,6 @@ import '@fontsource-variable/mona-sans/wdth.css';
 import '@fontsource/martian-mono/400.css';
 import '@fontsource/martian-mono/500.css';
 import './styles/global.css';
-import './index.css';
 
 if (captureToken(window.location.hash, window.sessionStorage)) {
   window.history.replaceState(null, '', window.location.pathname + window.location.search);

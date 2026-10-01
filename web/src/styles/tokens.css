@@ -2,8 +2,6 @@
   Console tokens. Every forked color is declared once with light-dark(); the
   scheme comes from [data-theme] when set and from prefers-color-scheme when the
   attribute is absent. Component rules never mention a theme.
-  Names avoid the Tailwind/shadcn ones in index.css (--border, --ring, --radius,
-  --background) so both sheets coexist until the old one is removed.
 */
 
 :root {
