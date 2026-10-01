@@ -126,7 +126,7 @@ async function workerEnvironment(deps: DelegateDeps, provider: Provider, model: 
     await deps.ensureProxy({ dir: deps.config.proxy.dir, port: repairProxy.port, upstreamBaseUrl: provider.baseUrl, logPath: repairProxy.logPath, telemetryPath: repairProxy.telemetryPath });
   }
   const baseUrl = repairProxy ? proxyUrl(repairProxy.port) : provider.baseUrl;
-  const apiKey = await deps.readApiKey(provider.keychainService);
+  const apiKey = await deps.readApiKey(provider.keychainService ?? '');
   return buildWorkerEnv({ inherited: deps.env, envVars: parseEnvVars(envVarsText), baseUrl, model, apiKey, effort });
 }
 

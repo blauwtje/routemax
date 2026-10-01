@@ -122,7 +122,7 @@ function keyRoutes(deps: UiDeps): ApiRoute[] {
       pattern: /^\/api\/keys$/,
       handle: async () => {
         const { providers } = loadConfig(deps.configPath);
-        const keys = await Promise.all(Object.entries(providers).map(async ([id, provider]) => [id, { present: await hasKey(provider.keychainService) }] as const));
+        const keys = await Promise.all(Object.entries(providers).map(async ([id, provider]) => [id, { present: await hasKey(provider.keychainService ?? '') }] as const));
         return ok({ keys: Object.fromEntries(keys) });
       },
     },
@@ -136,8 +136,8 @@ function keyRoutes(deps: UiDeps): ApiRoute[] {
         if (!parsed.success) return invalid(formatIssues(parsed.error));
         const issues = keyIssues(parsed.data.key);
         if (issues.length > 0) return invalid(issues);
-        await storeApiKey(providers[providerId].keychainService, parsed.data.key);
-        return ok({ present: await hasKey(providers[providerId].keychainService) });
+        await storeApiKey(providers[providerId].keychainService ?? '', parsed.data.key);
+        return ok({ present: await hasKey(providers[providerId].keychainService ?? '') });
       },
     },
   ];

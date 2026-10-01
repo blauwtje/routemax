@@ -15,6 +15,30 @@ describe('configIssues', () => {
     expect(validConfig().smartRouting).toEqual({ enabled: true, checkTimeoutMs: 3000 });
   });
 
+  it('defaults lanes and task efforts when the seed omits them', () => {
+    const config = validConfig();
+    expect(config.lanes).toEqual({ fallback: null, preferGlmAtPeak: false });
+    expect(config.taskEfforts).toEqual({});
+  });
+
+  it('accepts a provider with a key variable and a peak window', () => {
+    const config = validConfig();
+    config.providers.deepseek.peak = { windowsUtc: [[6, 10]], weekdaysOnly: true, priceFactor: 2 };
+    expect(configIssues(config)).toEqual([]);
+  });
+
+  it('names the lane field when the fallback points at an unknown provider', () => {
+    const config = validConfig();
+    config.lanes.fallback = { provider: 'zai', model: 'glm-5.3' };
+    expect(configIssues(config)).toEqual(['lanes.fallback.provider: provider zai does not exist']);
+  });
+
+  it('names the task effort for an unknown effort', () => {
+    const config = validConfig();
+    config.taskEfforts.build = 'huge' as Effort;
+    expect(configIssues(config)).toContainEqual(expect.stringMatching(/^taskEfforts\.build: /));
+  });
+
   it('names the tier field when a tier points at an unknown provider', () => {
     const config = validConfig();
     config.tiers['flash-low'].provider = 'missing';

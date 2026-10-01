@@ -109,7 +109,7 @@ export async function smartRoute(config: DelegateConfig, request: PlanRequest, d
     let checkResult: Awaited<ReturnType<typeof checkTask>> = null;
     let checkError: string | null = null;
     try {
-      const apiKey = await deps.readApiKey(provider.keychainService);
+      const apiKey = await deps.readApiKey(provider.keychainService ?? '');
       checkResult = await checkTask(
         request.task,
         { baseUrl: provider.baseUrl, apiKey, model: flashLow.model, price: provider.models[flashLow.model] },

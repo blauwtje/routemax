@@ -41,10 +41,10 @@ async function checkEnvVars(homeDir: string): Promise<DoctorCheck> {
 async function checkProviderKey(deps: DoctorDeps, provider: Provider): Promise<DoctorCheck> {
   const name = `${provider.name} key`;
   try {
-    await deps.readApiKey(provider.keychainService);
+    await deps.readApiKey(provider.keychainService ?? '');
     return pass(name, `The ${provider.name} key is in Keychain.`);
   } catch {
-    return fix(name, `No ${provider.name} key in Keychain. Store it once: security add-generic-password -a "$USER" -s ${provider.keychainService} -w`);
+    return fix(name, `No ${provider.name} key in Keychain. Store it once: security add-generic-password -a "$USER" -s ${provider.keychainService ?? ''} -w`);
   }
 }
 

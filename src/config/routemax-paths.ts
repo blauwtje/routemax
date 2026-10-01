@@ -6,3 +6,4 @@ export const v1BackupPath = (homeDir: string) => join(backupsDir(homeDir), 'rout
 export const previousConfigPath = (homeDir: string) => join(backupsDir(homeDir), 'config.prev.json');
 export const providerTestsPath = (homeDir: string) => join(homeDir, '.local', 'state', 'routemax', 'provider-tests.json');
 export const claudeUsagePath = (homeDir: string) => join(homeDir, '.local', 'state', 'routemax', 'claude-usage.json');
+export const keysEnvPath = (homeDir: string) => join(homeDir, '.config', 'routemax', 'keys.env');

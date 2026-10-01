@@ -68,10 +68,18 @@ const repairProxySchema = z.object({
   telemetryPath: z.string().min(1),
 });
 
+const peakSchema = z.object({
+  windowsUtc: z.array(z.tuple([z.number().min(0).max(24), z.number().min(0).max(24)])),
+  weekdaysOnly: z.boolean(),
+  priceFactor: z.number().positive(),
+});
+
 const providerSchema = z.object({
   name: z.string().min(1),
   baseUrl: z.url(),
-  keychainService: z.string().min(1),
+  keychainService: z.string().min(1).optional(),
+  keyVariable: z.string().min(1).optional(),
+  peak: peakSchema.optional(),
   models: z.record(z.string().min(1), modelPriceSchema),
   efforts: z.array(effortSchema).min(1),
   enabled: z.boolean(),
@@ -79,6 +87,11 @@ const providerSchema = z.object({
 });
 
 const workerTierSchema = z.object({ provider: z.string().min(1), model: z.string().min(1), effort: effortSchema });
+
+const lanesSchema = z.object({
+  fallback: z.object({ provider: z.string().min(1), model: z.string().min(1) }).nullable(),
+  preferGlmAtPeak: z.boolean(),
+});
 
 export const smartRoutingSchema = z.object({
   enabled: z.boolean(),
@@ -92,6 +105,8 @@ export const configSchema = sharedFieldsSchema
     tiers: z.object({ 'flash-low': workerTierSchema, 'flash-high': workerTierSchema, 'pro-high': workerTierSchema }),
     proxy: z.object({ dir: z.string().min(1) }),
     smartRouting: smartRoutingSchema.default({ enabled: true, checkTimeoutMs: 3000 }),
+    lanes: lanesSchema.default({ fallback: null, preferGlmAtPeak: false }),
+    taskEfforts: z.record(z.string(), effortSchema).default({}),
   })
   .superRefine((config, context) => {
     const agentReferences: [string[], string][] = [
@@ -113,10 +128,21 @@ export const configSchema = sharedFieldsSchema
         context.addIssue({ code: 'custom', path: ['tiers', tierName, 'model'], message: `model ${tier.model} has no entry in providers.${tier.provider}.models` });
       }
     }
+    const fallback = config.lanes.fallback;
+    if (fallback) {
+      const provider = config.providers[fallback.provider];
+      if (!provider) {
+        context.addIssue({ code: 'custom', path: ['lanes', 'fallback', 'provider'], message: `provider ${fallback.provider} does not exist` });
+      } else if (!provider.models[fallback.model]) {
+        context.addIssue({ code: 'custom', path: ['lanes', 'fallback', 'model'], message: `model ${fallback.model} has no entry in providers.${fallback.provider}.models` });
+      }
+    }
   });
 
 export type Provider = z.infer<typeof providerSchema>;
 export type RepairProxy = z.infer<typeof repairProxySchema>;
+export type Peak = z.infer<typeof peakSchema>;
+export type Lanes = z.infer<typeof lanesSchema>;
 export type SmartRouting = z.infer<typeof smartRoutingSchema>;
 export type DelegateConfig = z.infer<typeof configSchema>;
 
