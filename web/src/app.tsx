@@ -1,18 +1,17 @@
 import type { ComponentType } from 'react';
-import { AppShell } from '@/components/app-shell';
-import { HistoryPage } from '@/features/history/history-page';
+import { AppShell } from '@/components/app-shell/app-shell';
+import { ToastHost } from '@/components/toast/toast';
+import { ActivityPage } from '@/features/activity/activity-page';
 import { OverviewPage } from '@/features/overview/overview-page';
-import { ProvidersPage } from '@/features/providers/providers-page';
 import { RoutingPage } from '@/features/routing/routing-page';
 import { SettingsPage } from '@/features/settings/settings-page';
 import { type Section, useSection } from '@/hooks/use-section';
 import { RouterSwitchProvider } from '@/hooks/use-router-switch';
 
-const SECTION_PAGES: Partial<Record<Section, ComponentType>> = {
+const SECTION_PAGES: Record<Section, ComponentType> = {
   overview: OverviewPage,
-  history: HistoryPage,
+  activity: ActivityPage,
   routing: RoutingPage,
-  providers: ProvidersPage,
   settings: SettingsPage,
 };
 
@@ -21,9 +20,11 @@ export function App() {
   const Page = SECTION_PAGES[section];
   return (
     <RouterSwitchProvider>
-      <AppShell section={section} onNavigate={navigate}>
-        {Page === undefined ? <p className="text-muted-foreground">This section is not built yet.</p> : <Page />}
-      </AppShell>
+      <ToastHost>
+        <AppShell section={section} onNavigate={navigate}>
+          <Page />
+        </AppShell>
+      </ToastHost>
     </RouterSwitchProvider>
   );
 }

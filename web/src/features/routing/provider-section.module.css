@@ -1,0 +1,51 @@
+@layer components {
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    min-inline-size: 0;
+  }
+
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3) var(--space-6);
+  }
+  .headText { display: flex; flex-direction: column; gap: var(--space-1); min-inline-size: 0; }
+  .title { margin: 0; font-size: var(--text-lg); }
+  .lede {
+    margin: 0;
+    max-inline-size: 60ch;
+    color: var(--ink-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-body);
+    text-wrap: pretty;
+  }
+
+  .badges { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); }
+
+  .problem {
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: var(--hairline) solid var(--line);
+    border-inline-start: 3px solid var(--warn);
+    border-radius: var(--r-control);
+    background: var(--surface);
+    font-size: var(--text-sm);
+  }
+  .retry {
+    min-block-size: 24px;
+    padding: 0 var(--space-1);
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .retry:hover { text-decoration-thickness: 2px; }
+  .retry:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; border-radius: var(--r-tag); }
+}

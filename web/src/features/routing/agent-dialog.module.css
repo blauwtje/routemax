@@ -1,0 +1,6 @@
+@layer components {
+  .stack { display: flex; flex-direction: column; gap: var(--space-5); }
+  .selectField { display: flex; flex-direction: column; gap: var(--space-2); max-inline-size: 14rem; }
+  .label { font-size: var(--text-sm); font-weight: var(--weight-strong); }
+  .note { margin: 0; color: var(--ink-muted); font-size: var(--text-sm); text-wrap: pretty; }
+}

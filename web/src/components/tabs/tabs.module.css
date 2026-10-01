@@ -1,0 +1,54 @@
+@layer components {
+  .root { display: flex; flex-direction: column; gap: var(--space-4); min-inline-size: 0; }
+
+  .list {
+    position: relative;
+    display: inline-flex;
+    align-self: flex-start;
+    max-inline-size: 100%;
+    gap: 2px;
+    padding: 3px;
+    border: var(--hairline) solid var(--line);
+    border-radius: var(--r-control);
+    background: var(--field);
+    box-shadow: var(--inset-field);
+  }
+
+  .tab {
+    position: relative;
+    z-index: 1;
+    min-block-size: calc(var(--control-sm) - 2px);
+    padding-inline: var(--space-3);
+    border: 0;
+    border-radius: calc(var(--r-control) - 3px);
+    background: transparent;
+    color: var(--ink-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    cursor: pointer;
+    transition: color var(--dur-feedback) var(--ease-out), background-color var(--dur-feedback) var(--ease-out);
+  }
+  .tab:hover:not([data-disabled]) { color: var(--ink); background: var(--hover); }
+  .tab[data-active] { color: var(--ink); font-weight: var(--weight-strong); background: transparent; }
+  .tab:active:not([data-disabled]) { background: var(--press); }
+  .tab[data-disabled] { cursor: not-allowed; opacity: 0.5; }
+  .tab:focus-visible { outline-offset: 0; }
+
+  /* The lighter pill: slides on translate and width, never on the label */
+  .indicator {
+    position: absolute;
+    inset-block: 3px;
+    inset-inline-start: 0;
+    inline-size: var(--active-tab-width);
+    translate: var(--active-tab-left) 0;
+    border-radius: calc(var(--r-control) - 3px);
+    background: var(--surface-2);
+    box-shadow: var(--elev-1);
+    transition: translate var(--dur-slide) var(--ease-out-quint), inline-size var(--dur-slide) var(--ease-out-quint);
+  }
+
+  .panel { min-inline-size: 0; }
+
+  @media (pointer: coarse) { .tab { min-block-size: calc(var(--control-touch) - 6px); } }
+}

@@ -1,0 +1,73 @@
+@layer components {
+  /* The page is the size container the expanded rows measure against */
+  .page { container-type: inline-size; display: grid; gap: var(--space-5); min-inline-size: 0; }
+
+  /* Title left, ledger totals as the right counterweight */
+  .head { display: grid; gap: var(--space-4); align-items: end; }
+  .title h1 {
+    margin: 0;
+    font-size: var(--text-title);
+    font-stretch: var(--stretch-display);
+    font-weight: var(--weight-display);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-tight);
+    text-wrap: balance;
+  }
+  .title p { margin: var(--space-1) 0 0; color: var(--ink-muted); text-wrap: pretty; }
+
+  .figures { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-8); margin: 0; }
+  .figure { display: grid; gap: var(--space-1); min-inline-size: 7rem; }
+  .figure dt { color: var(--ink-muted); font-size: var(--text-xs); letter-spacing: var(--tracking-label); }
+  .figure dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums lining-nums; font-weight: var(--weight-medium); white-space: nowrap; }
+  .big { font-size: var(--text-figure); line-height: 1.1; letter-spacing: -0.02em; }
+  .of { color: var(--ink-muted); font-size: var(--text-sm); }
+  .pending { color: var(--ink-muted); font-size: var(--text-figure); line-height: 1.1; }
+
+  /* Filters: one raised bar, controls beside the count they change */
+  .toolbar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    gap: var(--space-3) var(--space-4);
+    align-items: end;
+    padding: var(--space-3) var(--space-4);
+    border: var(--hairline) solid var(--line);
+    border-radius: var(--r-surface);
+    background: var(--surface);
+    box-shadow: var(--elev-1);
+  }
+  .field { display: grid; gap: var(--space-1); min-inline-size: 0; }
+  .field label { color: var(--ink-muted); font-size: var(--text-xs); letter-spacing: var(--tracking-label); }
+  /* Holds the slot so the bar keeps its height when the button appears */
+  .clear { display: flex; align-items: center; justify-content: flex-end; min-block-size: var(--control-md); }
+
+  /* Refresh failure over stale rows, and a first-load failure: same anatomy, no left stripe */
+  .notice, .failure {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: var(--hairline) solid var(--line-strong);
+    border-radius: var(--r-surface);
+    background: var(--surface);
+    box-shadow: var(--elev-1);
+  }
+  .notice p { flex: 1; margin: 0; text-wrap: pretty; }
+  .detail { color: var(--ink-muted); font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; }
+  .failure { padding-block: var(--space-6); }
+  .failureText { flex: 1; min-inline-size: 0; }
+
+  .empty { display: grid; justify-items: center; gap: var(--space-2); }
+  .emptyTitle { margin: 0; font-weight: var(--weight-strong); text-wrap: balance; }
+  .emptyHint { margin: 0; max-inline-size: 44ch; color: var(--ink-muted); text-wrap: pretty; }
+  .empty > button { margin-block-start: var(--space-2); }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums lining-nums; color: var(--ink); }
+
+  @media (min-width: 40rem) {
+    .head { grid-template-columns: 1fr auto; }
+    .toolbar { grid-template-columns: repeat(3, minmax(0, 12rem)) 1fr; }
+  }
+  @media (max-width: 30rem) {
+    .notice, .failure { flex-wrap: wrap; }
+    .notice p, .failureText { flex-basis: calc(100% - var(--space-6)); }
+  }
+}

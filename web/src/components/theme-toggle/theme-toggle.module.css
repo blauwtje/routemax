@@ -1,0 +1,7 @@
+@layer components {
+  .trigger { color: var(--ink-muted); }
+  .trigger:hover { color: var(--ink); }
+  .trigger svg { inline-size: var(--icon-md); block-size: var(--icon-md); }
+  /* The menu is open: hold the pressed wash so the trigger reads as its source */
+  .trigger[data-popup-open] { color: var(--ink); background: var(--selected); }
+}

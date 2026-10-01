@@ -16,13 +16,16 @@ The server's instructions tell the Max session to hand search, summaries, tests,
 
 Run `routemax ui` in any terminal. It opens a local page in your browser and runs until Ctrl-C. When a file under `web/` changed since the last build, it runs `npm run build:web` first.
 
-- Overview: the switch that turns `delegate` on and off in open sessions, spend per provider and the doctor lines.
-- History: every `delegate` call with its tier, provider, cost and status.
-- Routing: the rules, each tier's provider, model and effort, the effort map, the Claude agents, and a preview of where a task would go.
-- Providers: base URL, models and prices, the Keychain key and a test call per provider.
-- Settings: budget, timeouts and the test command per project.
+Four pages sit under a floating top navbar:
 
-Switched off, a `delegate` call returns `use_claude` with `reason: "disabled"` and starts no worker. A save checks every field first, keeps the previous version for Restore, and runs `chezmoi re-add` on the config. The page listens only on 127.0.0.1 and needs the token in the URL it opens.
+- Overview: the switch that turns `delegate` on and off in open sessions, spend by tier, provider and model for a chosen period, and the doctor lines.
+- Activity: every `delegate` call with its tier, provider, cost and status, filtered by status, tier and provider.
+- Routing: each tier's provider, model and effort, smart routing, the providers with their models, prices, key status and a test call, the rules, the Claude agents, and a preview of where a task would go.
+- Settings: budget, timeouts and retries, the Claude binary and repair proxy, and the test command per project.
+
+Every change saves on its own, with no Save button and no side panel. A toast confirms the save and offers Undo, which puts the previous version back. The toggle in the navbar switches between the dark and light theme.
+
+Switched off, a `delegate` call returns `use_claude` with `reason: "disabled"` and starts no worker. A save checks every field first, keeps the previous version for Undo, and runs `chezmoi re-add` on the config. The page listens only on 127.0.0.1 and needs the token in the URL it opens.
 
 Whether an open session drops `delegate` from its tool list when the switch turns off is not verified on Claude Code 2.1.283; anthropics/claude-code#77314 reports stdio servers not being refreshed. When `delegate` is still listed after a switch, restart the session or run `/mcp reconnect`. The switch holds either way: a call while off returns `use_claude` with `reason: "disabled"`, starts no worker, and the session does the task itself.
 

@@ -1,0 +1,353 @@
+@layer components {
+  .page {
+    display: grid;
+    gap: var(--space-4);
+    min-inline-size: 0;
+  }
+
+  /* Header: the title sits left, open space to its right stays quiet */
+  .head {
+    display: grid;
+    gap: var(--space-1);
+    padding-block-end: var(--space-2);
+  }
+  .title {
+    margin: 0;
+    font-family: var(--font-ui);
+    font-size: var(--text-title);
+    font-weight: var(--weight-display);
+    font-stretch: var(--stretch-display);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-tight);
+    text-wrap: balance;
+  }
+  .subtitle {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: var(--text-md);
+    text-wrap: pretty;
+  }
+
+  /* Summary row: router left, spend counterweight right */
+  .summary {
+    display: grid;
+    gap: var(--space-4);
+    grid-template-columns: minmax(0, 1fr);
+  }
+  @media (min-width: 52rem) {
+    .summary { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+  }
+
+  /* Raised surface: hairline, inset top highlight and short shadow come from --elev-* */
+  .card {
+    display: grid;
+    align-content: start;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+    min-inline-size: 0;
+    padding: var(--space-5);
+    border: var(--hairline) solid var(--line);
+    border-radius: var(--r-surface);
+    background: var(--surface);
+    box-shadow: var(--elev-1);
+  }
+  .card[data-focal] { box-shadow: var(--elev-2); }
+  @media (min-width: 40rem) {
+    .card { padding: var(--space-6); }
+  }
+
+  .cardHead {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    min-block-size: var(--control-md);
+  }
+  .cardTitle {
+    margin: 0;
+    font-size: var(--text-md);
+    font-weight: var(--weight-strong);
+    line-height: var(--leading-tight);
+  }
+  .meta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--ink-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-regular);
+  }
+  .mono, .id, .figure, .left, .ledger td {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .srOnly {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Router */
+  .routerBody { display: grid; align-content: start; gap: var(--space-3); }
+  .verdict {
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--weight-display);
+    font-stretch: var(--stretch-display);
+    letter-spacing: var(--tracking-display);
+    line-height: var(--leading-tight);
+    text-wrap: balance;
+  }
+  .note {
+    margin: 0;
+    max-inline-size: 38ch;
+    color: var(--ink-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-body);
+    text-wrap: pretty;
+  }
+
+  /* Spend */
+  /* Loaded and skeleton share one reserved height so the data landing moves nothing; the loaded card may still grow past it. */
+  .spendBody { display: grid; align-content: start; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); min-inline-size: 0; min-block-size: 15rem; }
+  @media (min-width: 36rem) {
+    .spendBody { min-block-size: 11.5rem; }
+  }
+  .figureRow {
+    min-inline-size: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+  }
+  .figure {
+    font-size: var(--text-figure);
+    font-weight: var(--weight-medium);
+    line-height: var(--leading-tight);
+    letter-spacing: -0.02em;
+    /* No fixed box and no overflow clip: text-spacing overrides widen it, so it wraps or grows */
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
+  }
+  .ofTotal { color: var(--ink-muted); font-size: var(--text-sm); }
+  .left {
+    margin-inline-start: auto;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+  }
+  .left[data-over] { color: var(--danger); }
+
+  /* Budget bar: one 6px track, a segment per tier, the unfilled remainder is the track */
+  .bar {
+    display: flex;
+    gap: 2px;
+    block-size: 6px;
+    overflow: hidden;
+    border-radius: var(--r-full);
+    background: var(--surface-2);
+    box-shadow: var(--inset-field);
+  }
+  .segment {
+    flex: 0 0 var(--w);
+    min-inline-size: 4px;
+    border-radius: 1px;
+    background: var(--segment, var(--neutral));
+  }
+  .segment[data-tier='flash-low'] { --segment: var(--tier-flash-low); }
+  .segment[data-tier='flash-high'] { --segment: var(--tier-flash-high); }
+  .segment[data-tier='pro-high'] { --segment: var(--tier-pro-high); }
+
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    gap: var(--space-2) var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .legend li {
+    display: grid;
+    gap: var(--space-1);
+    font-size: var(--text-sm);
+  }
+  .legend .mono { font-size: var(--text-sm); }
+
+  .claudeLine {
+    margin: 0;
+    padding-block-start: var(--space-4);
+    border-block-start: var(--hairline) solid var(--line);
+    color: var(--ink-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-body);
+    text-wrap: pretty;
+  }
+  .claudeLine .mono { color: var(--ink); }
+
+  .hint {
+    min-block-size: 1.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    cursor: help;
+  }
+  .hint:hover { color: var(--ink); }
+
+  /* Period control: two pressed-state buttons on one inset track */
+  .period {
+    display: inline-flex;
+    gap: 2px;
+    padding: 2px;
+    flex: none;
+    border-radius: var(--r-control);
+    background: var(--field);
+    box-shadow: var(--inset-field);
+  }
+  .period button {
+    min-block-size: var(--control-sm);
+    padding-inline: var(--space-3);
+    border: 0;
+    border-radius: calc(var(--r-control) - 2px);
+    background: transparent;
+    color: var(--ink-muted);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--dur-feedback) var(--ease-out), color var(--dur-feedback) var(--ease-out);
+  }
+  .period button:hover { color: var(--ink); }
+  .period button[aria-pressed='true'] {
+    background: var(--surface-2);
+    color: var(--ink);
+    box-shadow: var(--elev-1);
+  }
+  @media (pointer: coarse) {
+    .period button { min-block-size: var(--control-touch); padding-inline: var(--space-4); }
+    .hint { min-block-size: var(--control-touch); }
+  }
+
+  /* Ledgers: hairline rules, no cards around rows, mono figures right-aligned */
+  .callsBody { display: grid; gap: var(--space-6); min-inline-size: 0; }
+  .ledger {
+    inline-size: 100%;
+    border-collapse: collapse;
+    font-size: var(--text-sm);
+  }
+  .ledger th, .ledger td {
+    padding: var(--space-3) var(--space-2);
+    border-block-end: var(--hairline) solid var(--line);
+    text-align: start;
+    vertical-align: baseline;
+  }
+  @media (max-width: 22.5rem) {
+    .ledger th, .ledger td { padding-inline: var(--space-1); }
+  }
+  .ledger thead th {
+    color: var(--ink-muted);
+    font-weight: var(--weight-medium);
+    letter-spacing: var(--tracking-label);
+  }
+  .ledger tbody th { font-weight: var(--weight-regular); }
+  .ledger [data-numeric] { text-align: end; white-space: nowrap; }
+  .ledger th:first-child, .ledger td:first-child { padding-inline-start: 0; }
+  .ledger th:last-child, .ledger td:last-child { padding-inline-end: 0; }
+  .ledger tbody tr:last-child > * { border-block-end: 0; }
+  .ledger thead th:first-child { inline-size: 45%; }
+  .id { overflow-wrap: anywhere; }
+  /* Badge and note share a line; on a narrow cell the note wraps under the badge, for every row alike */
+  .tierName { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); }
+  /* Rows share one height whether or not they carry the note */
+  .ledger tbody tr { block-size: calc(1.5rem + var(--space-3) * 2); }
+  @media (pointer: coarse) {
+    .ledger tbody tr { block-size: calc(var(--control-touch) + var(--space-3) * 2); }
+  }
+  .tierName .hint { color: var(--ink-muted); font-size: var(--text-sm); }
+
+  .minis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: var(--space-6) var(--space-8);
+    padding-block-start: var(--space-6);
+    border-block-start: var(--hairline) solid var(--line);
+  }
+  .miniTitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-3);
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-strong);
+  }
+  .empty {
+    margin: 0;
+    padding-block: var(--space-3);
+    color: var(--ink-muted);
+    font-size: var(--text-sm);
+    text-wrap: pretty;
+  }
+
+  /* Health: the list owns its hairlines; the card pads only the head */
+  .healthTitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); }
+  /* min-inline-size lets the grid item shrink below its nowrap content; a long check message wraps here instead of widening the card */
+  .healthList { min-inline-size: 0; margin-inline: calc(var(--space-2) * -1); --list-subtitle-wrap: normal; --list-subtitle-break: anywhere; }
+  .healthNotice { min-inline-size: 0; }
+  .healthNotice { display: grid; grid-template-columns: minmax(0, 1fr); }
+  @media (prefers-reduced-motion: no-preference) {
+    .healthList { transition: opacity var(--dur-feedback) var(--ease-out); }
+    .healthList[data-running] { transition-delay: var(--wait-threshold); }
+  }
+  .healthList[data-running] { opacity: 0.5; }
+
+  /* Notices: dot plus words on a danger tint */
+  .notice {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    margin: 0;
+    padding: var(--space-3) var(--space-4);
+    border: var(--hairline) solid color-mix(in oklch, var(--danger) 35%, var(--line));
+    border-radius: var(--r-control);
+    background: var(--danger-tint);
+    font-size: var(--text-sm);
+    line-height: var(--leading-body);
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
+
+  /* The router sentence crossfades when the switch flips (cause: the toggle) */
+  .verdict { animation: fade var(--dur-lamp) var(--ease-out) both; }
+  @keyframes fade { from { opacity: 0.001; } }
+
+  /* Skeletons reserve the geometry of what lands; they carry no text */
+  .skeleton {
+    display: block;
+    border-radius: var(--r-control);
+    background: var(--surface-2);
+  }
+  .skeleton[data-shape='verdict'] { block-size: 1.5rem; inline-size: 70%; }
+  .skeleton[data-shape='note'] { block-size: 2.625rem; }
+  .spendBody .skeleton[data-shape='note'] { block-size: 6.5rem; }
+  .skeleton[data-shape='figure'] { block-size: calc(var(--text-figure) * var(--leading-tight)); inline-size: 55%; }
+  .skeleton[data-shape='bar'] { block-size: 6px; border-radius: var(--r-full); }
+  .skeleton[data-shape='table'] { block-size: 11.5rem; }
+  @media (prefers-reduced-motion: no-preference) {
+    .skeleton { animation: wait 1400ms ease-in-out infinite alternate; }
+  }
+  @keyframes wait { from { opacity: 1; } to { opacity: 0.45; } }
+}

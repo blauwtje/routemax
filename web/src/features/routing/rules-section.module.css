@@ -1,0 +1,23 @@
+@layer components {
+  .root { display: flex; flex-direction: column; gap: var(--space-10); }
+  .block { display: flex; flex-direction: column; gap: var(--space-4); }
+  .blockHeader { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--space-3) var(--space-6); }
+  .blockHeading { flex: 1 1 24rem; min-inline-size: 0; }
+  .blockTitle { margin: 0; font-size: var(--text-lg); font-weight: var(--weight-display); font-stretch: var(--stretch-display); letter-spacing: -0.01em; }
+  .blockDescription { margin: var(--space-1) 0 0; max-inline-size: 62ch; color: var(--ink-muted); font-size: var(--text-sm); text-wrap: pretty; }
+  .subTitle { margin: var(--space-4) 0 0; font-size: var(--text-md); font-weight: var(--weight-strong); }
+
+  .mono { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: var(--weight-medium); }
+  .target { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .arrow { inline-size: 0.875rem; block-size: 0.875rem; color: var(--ink-muted); flex: none; }
+
+  .effortSelect { min-inline-size: 7.5rem; }
+  .agentSelect { min-inline-size: min(11rem, 40vw); }
+
+  .defaultRow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+  .defaultLabel { font-size: var(--text-sm); font-weight: var(--weight-strong); }
+
+  .addTaskType { display: flex; flex-wrap: wrap; align-items: start; gap: var(--space-3); }
+  .addField { flex: 1 1 14rem; max-inline-size: 22rem; }
+  .addTaskType > button { margin-block-start: 1.6rem; }
+}

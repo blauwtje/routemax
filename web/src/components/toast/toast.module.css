@@ -1,0 +1,53 @@
+@layer components {
+  .viewport {
+    position: fixed;
+    inset-block-end: max(var(--space-4), env(safe-area-inset-bottom));
+    inset-inline-end: max(var(--space-4), env(safe-area-inset-right));
+    z-index: var(--z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    inline-size: min(24rem, calc(100vw - 2 * var(--space-4)));
+  }
+
+  .root {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    border: var(--hairline) solid var(--line-strong);
+    border-radius: var(--r-surface);
+    background: var(--surface-popup);
+    box-shadow: var(--elev-3);
+    transition: opacity var(--dur-toast) var(--ease-out-quint), translate var(--dur-toast) var(--ease-out-quint);
+  }
+  .root[data-starting-style] { opacity: 0; translate: 0 var(--toast-rise); }
+  .root[data-ending-style] { opacity: 0; translate: 0 var(--toast-rise); transition-duration: var(--dur-exit); transition-timing-function: var(--ease-in); }
+  .root[data-limited] { display: none; }
+
+  .content { flex: 1; min-inline-size: 0; }
+  .title { margin: 0; font-weight: var(--weight-strong); font-size: var(--text-sm); }
+  .description { margin: 0; color: var(--ink-muted); font-size: var(--text-xs); text-wrap: pretty; }
+
+  .action {
+    flex: none;
+    min-block-size: var(--control-sm);
+    padding-inline: var(--space-3);
+    border: var(--hairline) solid var(--line-strong);
+    border-radius: var(--r-control);
+    background: var(--surface-2);
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-strong);
+    cursor: pointer;
+    transition: background-color var(--dur-feedback) var(--ease-out);
+  }
+  .action:hover { background: color-mix(in oklch, var(--surface-2) 86%, var(--ink)); }
+  .action:active { background: var(--press); }
+
+  .close { flex: none; display: inline-grid; place-items: center; inline-size: var(--control-sm); block-size: var(--control-sm); padding: 0; border: 0; border-radius: var(--r-control); background: transparent; color: var(--ink-muted); cursor: pointer; }
+  .close:hover { background: var(--hover); color: var(--ink); }
+  .close svg { inline-size: var(--icon-sm); block-size: var(--icon-sm); }
+  @media (pointer: coarse) { .action, .close { min-block-size: var(--control-touch); min-inline-size: var(--control-touch); } }
+}
