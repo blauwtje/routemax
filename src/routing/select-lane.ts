@@ -6,6 +6,7 @@ export interface LaneSelection {
   lane: string;
   model: string;
   effort: Effort;
+  taskEffort: Effort;
   peak: boolean;
   priceFactor: number;
 }
@@ -19,11 +20,12 @@ export function selectLane(config: DelegateConfig, tier: WorkerTier, taskType: s
   const useFallback = Boolean(fallback) && config.lanes.preferGlmAtPeak && peak;
   const lane = useFallback && fallback ? fallback : workerTier;
   const provider = config.providers[lane.provider];
-  const wanted = WORKER_EFFORT[config.taskEfforts[taskType] ?? workerTier.effort];
+  const taskEffort = config.taskEfforts[taskType] ?? workerTier.effort;
   return {
     lane: lane.provider,
     model: lane.model,
-    effort: fitEffort(wanted, provider.efforts),
+    effort: fitEffort(WORKER_EFFORT[taskEffort], provider.efforts),
+    taskEffort,
     peak,
     priceFactor: priceFactor(provider.peak, now),
   };

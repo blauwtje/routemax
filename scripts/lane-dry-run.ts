@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, symlinkSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { activeConfigPath, loadConfig } from '../src/config/delegate-config';
-import { decisionLogPath } from '../src/decision-log/decision-log';
+import { appendDecision, decisionLogPath } from '../src/decision-log/decision-log';
 import { delegate } from '../src/delegate/delegate';
 import { ensureProxy } from '../src/proxy/ensure-proxy';
 import { readLaneKey } from '../src/worker/read-lane-key';
@@ -51,5 +51,8 @@ const result = await delegate(
 );
 console.log(`result: ${result.status}`);
 const lines = readFileSync(decisionLogPath(home), 'utf8').trimEnd().split('\n');
-console.log(lines[lines.length - 1]);
+const record = lines[lines.length - 1];
+console.log(record);
+// The scratch log keeps the run out of the on/off switch; the spend still counts toward the live budget.
+await appendDecision(decisionLogPath(realHome), JSON.parse(record));
 console.log(`(log: ${decisionLogPath(home)})`);

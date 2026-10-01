@@ -119,7 +119,7 @@ async function runWorkerTask(request: DelegateRequest, plan: WorkerPlan, base: D
   let taskEffort: Effort = config.tiers[plan.tier].effort;
   try {
     selection = selectLane(config, plan.tier, request.taskType, now);
-    taskEffort = config.taskEfforts[request.taskType] ?? taskEffort;
+    taskEffort = selection.taskEffort;
   } catch {
     // Fail open: a broken lane selection must not stop the task; today's plan runs instead.
     selection = null;

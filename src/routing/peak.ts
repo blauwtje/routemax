@@ -1,11 +1,7 @@
-// Windows are [startHour, endHour) in UTC; Task 1's schema must use the same shape.
-export interface PeakConfig {
-  windowsUtc: [number, number][];
-  weekdaysOnly: boolean;
-  priceFactor: number;
-}
+import type { Peak } from '../config/config-schema';
 
-export function isPeak(peak: PeakConfig | undefined, now: Date): boolean {
+// Windows are [startHour, endHour) in UTC.
+export function isPeak(peak: Peak | undefined, now: Date): boolean {
   if (!peak) return false;
   const day = now.getUTCDay();
   if (peak.weekdaysOnly && (day === 0 || day === 6)) return false;
@@ -13,7 +9,7 @@ export function isPeak(peak: PeakConfig | undefined, now: Date): boolean {
   return peak.windowsUtc.some(([start, end]) => hour >= start && hour < end);
 }
 
-export function priceFactor(peak: PeakConfig | undefined, now: Date): number {
+export function priceFactor(peak: Peak | undefined, now: Date): number {
   if (!peak || !isPeak(peak, now)) return 1;
   return peak.priceFactor;
 }

@@ -29,7 +29,7 @@ function build(overrides: { preferGlmAtPeak?: boolean; fallback?: boolean; tierE
 describe('selectLane', () => {
   it('uses the tier provider and model off peak', () => {
     expect(selectLane(build({ preferGlmAtPeak: true }), 'flash-low', 'explore', OFF_PEAK_TIME)).toEqual({
-      lane: 'deepseek', model: 'deepseek-flash', effort: 'low', peak: false, priceFactor: 1,
+      lane: 'deepseek', model: 'deepseek-flash', effort: 'low', taskEffort: 'low', peak: false, priceFactor: 1,
     });
   });
 
@@ -40,7 +40,7 @@ describe('selectLane', () => {
 
   it('switches to the fallback lane at peak when preferGlmAtPeak is set', () => {
     expect(selectLane(build({ preferGlmAtPeak: true }), 'flash-low', 'explore', PEAK_TIME)).toEqual({
-      lane: 'zai', model: 'glm-5.3', effort: 'low', peak: true, priceFactor: 1,
+      lane: 'zai', model: 'glm-5.3', effort: 'low', taskEffort: 'low', peak: true, priceFactor: 1,
     });
   });
 

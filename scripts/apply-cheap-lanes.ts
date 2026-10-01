@@ -6,7 +6,6 @@ const TASK_TYPES = ['search', 'read', 'summarize', 'boilerplate', 'tests', 'simp
 const DEEPSEEK_PEAK = { windowsUtc: [[1, 4], [6, 10]], weekdaysOnly: true, priceFactor: 2 };
 const ZAI_FREE = { inputUsd: 0, cacheHitUsd: 0, outputUsd: 0 };
 
-// The provider schema names the keys.env variable `keyVariable`; the brief's `keyFile` is the same field.
 const zaiProvider = {
   name: 'Z.ai GLM',
   baseUrl: 'https://api.z.ai/api/anthropic',

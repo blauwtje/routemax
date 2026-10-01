@@ -141,7 +141,6 @@ export const configSchema = sharedFieldsSchema
 export type Provider = z.infer<typeof providerSchema>;
 export type RepairProxy = z.infer<typeof repairProxySchema>;
 export type Peak = z.infer<typeof peakSchema>;
-export type Lanes = z.infer<typeof lanesSchema>;
 export type SmartRouting = z.infer<typeof smartRoutingSchema>;
 export type DelegateConfig = z.infer<typeof configSchema>;
 

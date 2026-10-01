@@ -32,7 +32,7 @@ function delegateInputShape(types: string[]) {
       .enum(types)
       .describe('The closest kind: search, read and summarize are read-only; boilerplate, tests and simple-edit are small changes; build is a larger change with a clear spec; the rest stays on Claude.'),
     requestedTier: z.enum(TIER_ORDER).default('flash-low').describe('Optional. The lowest tier to use; routing only raises it: flash-low < flash-high < pro-high < claude.'),
-    claudeEffort: z.enum(EFFORT_ORDER).optional().describe('Optional. The effort this task would get on Claude; a higher value raises the worker effort.'),
+    claudeEffort: z.enum(EFFORT_ORDER).optional().describe('Optional. The effort this task would get on Claude. It does not change the worker effort.'),
     flags: z.array(z.string()).default([]).describe('Optional. irreversible or unknown-cause keep the task on Claude.'),
   };
 }

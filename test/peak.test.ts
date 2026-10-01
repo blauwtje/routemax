@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { isPeak, priceFactor, type PeakConfig } from '../src/routing/peak';
+import type { Peak } from '../src/config/config-schema';
+import { isPeak, priceFactor } from '../src/routing/peak';
 
-const peak: PeakConfig = {
+const peak: Peak = {
   windowsUtc: [
     [1, 4],
     [6, 10],
