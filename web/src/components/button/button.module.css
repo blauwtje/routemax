@@ -1,0 +1,87 @@
+@layer components {
+  .root {
+    --button-h: var(--control-md);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-block-size: var(--button-h);
+    padding-inline: var(--space-3);
+    border: var(--hairline) solid transparent;
+    border-radius: var(--r-control);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-strong);
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background-color var(--dur-feedback) var(--ease-out),
+      border-color var(--dur-feedback) var(--ease-out),
+      box-shadow var(--dur-feedback) var(--ease-out),
+      translate var(--dur-feedback) var(--ease-out);
+  }
+
+  .root[data-size='sm'] { --button-h: var(--control-sm); padding-inline: var(--space-2); }
+  .root[data-icon-only] { aspect-ratio: 1; padding-inline: 0; }
+  .root svg { flex: none; inline-size: var(--icon-sm); block-size: var(--icon-sm); }
+
+  /* Primary: ink on ground, the heaviest mass in the region */
+  .root[data-variant='primary'] {
+    background: var(--ink);
+    color: var(--ink-inverse);
+    box-shadow: var(--elev-1);
+  }
+  .root[data-variant='primary']:hover { background: color-mix(in oklch, var(--ink) 88%, var(--ground)); }
+
+  /* Secondary: same skeleton, raised surface with a hairline */
+  .root[data-variant='secondary'] {
+    background: var(--surface-2);
+    border-color: var(--line-strong);
+    box-shadow: var(--elev-1);
+  }
+  .root[data-variant='secondary']:hover { background: color-mix(in oklch, var(--surface-2) 86%, var(--ink)); }
+
+  .root[data-variant='ghost']:hover { background: var(--hover); }
+
+  .root[data-variant='danger'] {
+    color: var(--danger);
+    border-color: color-mix(in oklch, var(--danger) 38%, transparent);
+  }
+  .root[data-variant='danger']:hover { background: var(--danger-tint); border-color: var(--danger); }
+
+  /* Pressed lowers elevation, matching the ambient light */
+  .root:active:not(:disabled) { box-shadow: none; translate: 0 1px; }
+  .root[data-variant='ghost']:active:not(:disabled) { background: var(--press); }
+
+  .root:disabled { cursor: not-allowed; color: var(--ink-muted); background: var(--hover); border-color: var(--line); box-shadow: none; }
+  .root[data-variant='ghost']:disabled { background: transparent; border-color: transparent; }
+  .root[data-loading]:disabled { cursor: progress; color: var(--ink); }
+  .root[data-variant='primary'][data-loading]:disabled { color: var(--ink-inverse); background: var(--ink); }
+
+  .spinner {
+    flex: none;
+    inline-size: var(--icon-sm);
+    block-size: var(--icon-sm);
+    border: 2px solid currentColor;
+    border-inline-end-color: transparent;
+    border-radius: var(--r-full);
+    animation: spin 800ms linear infinite;
+  }
+
+  @keyframes spin { to { rotate: 1turn; } }
+  @keyframes pulse { 50% { opacity: 0.35; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation: pulse var(--dur-pulse) ease-in-out infinite; border-inline-end-color: currentColor; }
+  }
+
+  @media (pointer: coarse) {
+    .root { min-block-size: var(--control-touch); }
+    .root[data-icon-only] { min-inline-size: var(--control-touch); }
+  }
+}

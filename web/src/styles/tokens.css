@@ -1,0 +1,162 @@
+/*
+  Console tokens. Every forked color is declared once with light-dark(); the
+  scheme comes from [data-theme] when set and from prefers-color-scheme when the
+  attribute is absent. Component rules never mention a theme.
+  Names avoid the Tailwind/shadcn ones in index.css (--border, --ring, --radius,
+  --background) so both sheets coexist until the old one is removed.
+*/
+
+:root {
+  color-scheme: light dark;
+
+  /* Ground and surfaces: cool neutrals at hue 265 */
+  --ground: light-dark(oklch(0.985 0.003 265), oklch(0.16 0.006 265));
+  --ground-light: light-dark(oklch(0.93 0.025 200), oklch(0.3 0.03 200));
+  --grid-line: light-dark(oklch(0.2 0.01 265 / 0.05), oklch(1 0 0 / 0.03));
+  --surface: light-dark(oklch(1 0 0), oklch(0.205 0.007 265));
+  --surface-2: light-dark(oklch(0.958 0.004 265), oklch(0.27 0.008 265));
+  --surface-popup: light-dark(oklch(1 0 0), oklch(0.235 0.008 265));
+  --field: light-dark(oklch(0.992 0.002 265), oklch(0.175 0.006 265));
+  --scrim: light-dark(oklch(0.2 0.01 265 / 0.38), oklch(0 0 0 / 0.6));
+
+  /* Ink: primary at least 13:1 on surface, muted at least 5:1 */
+  --ink: light-dark(oklch(0.2 0.01 265), oklch(0.96 0.004 265));
+  --ink-muted: light-dark(oklch(0.5 0.01 265), oklch(0.68 0.01 265));
+  --ink-inverse: var(--ground);
+
+  /* Hairlines, derived from ink */
+  --line: light-dark(oklch(0.2 0.01 265 / 0.1), oklch(1 0 0 / 0.07));
+  --line-strong: light-dark(oklch(0.2 0.01 265 / 0.2), oklch(1 0 0 / 0.14));
+
+  /* Interaction washes, derived from ink */
+  --hover: color-mix(in oklch, var(--ink) 6%, transparent);
+  --press: color-mix(in oklch, var(--ink) 11%, transparent);
+  --selected: color-mix(in oklch, var(--ink) 9%, transparent);
+
+  /* Mint: router switch track, focus ring, logo tile */
+  --accent: light-dark(oklch(0.58 0.13 158), oklch(0.8 0.14 158));
+  --accent-ink: light-dark(oklch(1 0 0), oklch(0.2 0.04 158));
+  --focus-ring: var(--accent);
+
+  /* One hue per tier: dot and budget segment only */
+  --tier-flash-low: light-dark(oklch(0.52 0.1 215), oklch(0.75 0.1 215));
+  --tier-flash-high: light-dark(oklch(0.5 0.14 260), oklch(0.72 0.13 260));
+  --tier-pro-high: light-dark(oklch(0.55 0.12 80), oklch(0.82 0.12 85));
+  --tier-claude: light-dark(oklch(0.54 0.13 45), oklch(0.72 0.13 45));
+
+  /* State hues (dot plus word, never color alone) */
+  --ok: light-dark(oklch(0.5 0.12 158), oklch(0.8 0.14 158));
+  --warn: light-dark(oklch(0.52 0.12 75), oklch(0.82 0.12 85));
+  --danger: light-dark(oklch(0.5 0.17 25), oklch(0.74 0.15 25));
+  --info: light-dark(oklch(0.5 0.1 215), oklch(0.75 0.1 215));
+  --neutral: light-dark(oklch(0.55 0.01 265), oklch(0.58 0.01 265));
+  --danger-tint: color-mix(in oklch, var(--danger) 12%, transparent);
+  --track-off: light-dark(oklch(0.84 0.006 265), oklch(0.33 0.008 265));
+  --thumb: oklch(0.99 0.002 265);
+
+  /* Material: one soft light from above, three elevation steps */
+  --highlight: light-dark(oklch(1 0 0 / 0.9), oklch(1 0 0 / 0.05));
+  --shadow-ink: light-dark(oklch(0.3 0.03 265 / 0.12), oklch(0 0 0 / 0.45));
+  --elev-1: inset 0 1px 0 var(--highlight), 0 1px 2px var(--shadow-ink);
+  --elev-2: inset 0 1px 0 var(--highlight), 0 1px 2px var(--shadow-ink),
+    0 6px 14px -6px var(--shadow-ink);
+  --elev-3: inset 0 1px 0 var(--highlight), 0 2px 4px -1px var(--shadow-ink),
+    0 18px 40px -12px var(--shadow-ink);
+  --inset-field: inset 0 1px 1px light-dark(oklch(0.2 0.01 265 / 0.05), oklch(0 0 0 / 0.25));
+  --hairline: 1px;
+
+  /* Type: Mona Sans for UI, Martian Mono for money, counts, ids, durations */
+  --font-ui: 'Mona Sans Variable', 'Mona Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Martian Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-strong: 600;
+  --weight-display: 650;
+  --stretch-ui: 100%;
+  --stretch-display: 110%;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-title: clamp(1.375rem, 1.2rem + 0.55vw, 1.75rem);
+  --text-figure: clamp(1.625rem, 1.2rem + 1.5vw, 2.5rem);
+  --leading-body: 1.5;
+  --leading-tight: 1.2;
+  --tracking-display: -0.02em;
+  --tracking-label: 0.04em;
+
+  /* Spacing: one step function from 4px */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Radius is a role: tags, controls, surfaces, popups */
+  --r-tag: 4px;
+  --r-control: 8px;
+  --r-surface: 12px;
+  --r-popup: 14px;
+  --r-full: 999px;
+
+  /* Control scale; the touch height is the default under a coarse pointer */
+  --control-sm: 1.75rem;
+  --control-md: 2.125rem;
+  --control-touch: 2.75rem;
+  --icon-sm: 1rem;
+  --icon-md: 1.125rem;
+  --dot: 0.5rem;
+  --measure-field: 28rem;
+
+  /* Layering */
+  --z-popup: 50;
+  --z-toast: 60;
+
+  /* Motion: cause only. Feedback 140, popups 180, toasts 200, indicators 220 */
+  --dur-fade: 80ms;
+  --dur-feedback: 140ms;
+  --dur-popup: 180ms;
+  --dur-toast: 200ms;
+  --dur-slide: 220ms;
+  --dur-lamp: 300ms;
+  --dur-count: 600ms;
+  --dur-exit: 110ms;
+  --dur-pulse: 1400ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --popup-scale: 0.97;
+  --toast-rise: 12px;
+  --wait-threshold: 300ms;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+/*
+  Reduced motion replaces travel with an instant opacity swap: scale and rise
+  collapse to none and every duration drops under 80ms, so each state change
+  still happens and no feedback is lost.
+*/
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-feedback: var(--dur-fade);
+    --dur-popup: var(--dur-fade);
+    --dur-toast: var(--dur-fade);
+    --dur-slide: var(--dur-fade);
+    --dur-lamp: var(--dur-fade);
+    --dur-count: 0ms;
+    --dur-exit: var(--dur-fade);
+    --popup-scale: 1;
+    --toast-rise: 0px;
+  }
+}
