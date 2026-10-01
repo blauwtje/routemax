@@ -22,12 +22,19 @@ export function parseEnvVars(text: string): Record<string, string> {
 }
 
 export function buildWorkerEnv(input: WorkerEnvInput): Record<string, string> {
+  if (input.model.startsWith('claude-')) {
+    throw new Error(`Worker lane model must not be a Claude model: ${input.model}`);
+  }
   const inherited = Object.entries(input.inherited).filter(
     (entry): entry is [string, string] => entry[1] !== undefined && !NOT_INHERITED.test(entry[0]),
   );
   return {
     ...Object.fromEntries(inherited),
     ...input.envVars,
+    ANTHROPIC_DEFAULT_OPUS_MODEL: input.model,
+    ANTHROPIC_DEFAULT_SONNET_MODEL: input.model,
+    ANTHROPIC_DEFAULT_HAIKU_MODEL: input.model,
+    ANTHROPIC_SMALL_FAST_MODEL: input.model,
     ANTHROPIC_BASE_URL: input.baseUrl,
     ANTHROPIC_MODEL: input.model,
     CLAUDE_CODE_SUBAGENT_MODEL: input.model,

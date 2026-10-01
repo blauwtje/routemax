@@ -21,7 +21,7 @@ describe('buildWorkerEnv', () => {
       CLAUDE_CONFIG_DIR: '/Users/me/.claude',
       DEEPSEEK_DELEGATE_DEPTH: '0',
     },
-    envVars: { ANTHROPIC_BASE_URL: 'http://127.0.0.1:8787', ANTHROPIC_MODEL: 'deepseek-v4-pro', CLAUDE_CONFIG_DIR: '/Users/me/.claude-deepseek' },
+    envVars: { ANTHROPIC_DEFAULT_HAIKU_MODEL: 'claude-haiku-4-5', ANTHROPIC_BASE_URL: 'http://127.0.0.1:8787', ANTHROPIC_MODEL: 'deepseek-v4-pro', CLAUDE_CONFIG_DIR: '/Users/me/.claude-deepseek' },
     baseUrl: 'https://openrouter.ai/api',
     model: 'deepseek-v4-flash',
     apiKey: 'sk-fake-key',
@@ -45,5 +45,20 @@ describe('buildWorkerEnv', () => {
       CLAUDE_CODE_EFFORT_LEVEL: 'high',
       DEEPSEEK_DELEGATE_DEPTH: '1',
     });
+  });
+
+  it('pins every model variable to the lane model, over env.vars', () => {
+    expect(env).toMatchObject({
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'deepseek-v4-flash',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'deepseek-v4-flash',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'deepseek-v4-flash',
+      ANTHROPIC_SMALL_FAST_MODEL: 'deepseek-v4-flash',
+    });
+  });
+
+  it('throws when the lane model is a Claude model', () => {
+    expect(() =>
+      buildWorkerEnv({ inherited: {}, envVars: {}, baseUrl: 'http://x', model: 'claude-sonnet-4-5', apiKey: 'k', effort: 'high' }),
+    ).toThrow(/Claude model/);
   });
 });
