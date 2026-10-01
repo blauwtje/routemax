@@ -16,6 +16,10 @@ export interface DecisionRecord extends TokenUsage {
   provider: string | null;
   routedBy?: string;
   routeReason?: string;
+  lane?: string;
+  peak?: boolean;
+  fallbackFrom?: string | null;
+  taskEffort?: Effort;
   model: string | null;
   effort: Effort | null;
   costUsd: number;

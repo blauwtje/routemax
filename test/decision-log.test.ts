@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -36,6 +36,34 @@ describe('decision log', () => {
     await appendDecision(logPath, record(0.12));
     await appendDecision(logPath, record(0.3));
     expect(await readSpentUsd(logPath)).toBeCloseTo(0.42, 10);
+  });
+
+  it('appends one line carrying every field the dashboard needs', async () => {
+    const logPath = tempLog();
+    await appendDecision(logPath, {
+      ...record(0.02),
+      lane: 'deepseek-flash',
+      peak: true,
+      fallbackFrom: 'deepseek-flash',
+      taskEffort: 'high',
+    });
+    const lines = readFileSync(logPath, 'utf8').split('\n').filter(Boolean);
+    expect(lines).toHaveLength(1);
+    expect(JSON.parse(lines[0])).toMatchObject({
+      ts: '2026-09-25T10:00:00.000Z',
+      taskType: 'search',
+      lane: 'deepseek-flash',
+      model: 'deepseek-v4-flash',
+      effort: 'low',
+      taskEffort: 'high',
+      peak: true,
+      fallbackFrom: 'deepseek-flash',
+      inputTokens: 10,
+      outputTokens: 5,
+      costUsd: 0.02,
+      durationMs: 1200,
+      status: 'done',
+    });
   });
 
   it('reads zero before the first call', async () => {
