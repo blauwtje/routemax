@@ -11,7 +11,7 @@ import type { DelegateDeps } from '../delegate/delegate';
 import { runDoctorChecks, type DoctorDeps } from '../doctor/doctor-checks';
 import { isRouterEnabled, setRouterEnabled } from '../router-switch/router-switch';
 import { previewRoute } from '../routing/smart-route';
-import { readApiKey } from '../worker/read-api-key';
+import { readLaneKey } from '../worker/read-lane-key';
 import { keyIssues, storeApiKey } from '../worker/store-api-key';
 import { decisionStats, readDecisions } from './decision-stats';
 import { readProviderTests, recordProviderTest, testProvider } from './provider-test';
@@ -45,7 +45,15 @@ const STORE_ERROR_STATUS = { stale: 409, invalid: 422, missing: 404 } as const;
 export const invalid = (issues: string[]): ApiResponse => ({ status: 422, body: { error: 'invalid', issues } });
 const ok = (body: unknown): ApiResponse => ({ status: 200, body });
 const missing = (issues: string[]): ApiResponse => ({ status: 404, body: { error: 'missing', issues } });
-const hasKey = (keychainService: string): Promise<boolean> => readApiKey(keychainService).then(() => true, () => false);
+function hasKey(homeDir: string, keyVariable: string | undefined): boolean {
+  if (!keyVariable) return false;
+  try {
+    readLaneKey(homeDir, keyVariable);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 async function storeReply(deps: UiDeps, outcome: StoreOutcome): Promise<ApiResponse> {
   if (!outcome.ok) return { status: STORE_ERROR_STATUS[outcome.kind], body: { error: outcome.kind, issues: outcome.issues } };
@@ -122,7 +130,7 @@ function keyRoutes(deps: UiDeps): ApiRoute[] {
       pattern: /^\/api\/keys$/,
       handle: async () => {
         const { providers } = loadConfig(deps.configPath);
-        const keys = await Promise.all(Object.entries(providers).map(async ([id, provider]) => [id, { present: await hasKey(provider.keychainService ?? '') }] as const));
+        const keys = Object.entries(providers).map(([id, provider]) => [id, { present: hasKey(deps.homeDir, provider.keyVariable) }] as const);
         return ok({ keys: Object.fromEntries(keys) });
       },
     },
@@ -137,7 +145,7 @@ function keyRoutes(deps: UiDeps): ApiRoute[] {
         const issues = keyIssues(parsed.data.key);
         if (issues.length > 0) return invalid(issues);
         await storeApiKey(providers[providerId].keychainService ?? '', parsed.data.key);
-        return ok({ present: await hasKey(providers[providerId].keychainService ?? '') });
+        return ok({ present: hasKey(deps.homeDir, providers[providerId].keyVariable) });
       },
     },
   ];

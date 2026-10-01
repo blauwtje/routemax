@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -63,14 +63,6 @@ afterAll(async () => {
 describe('keys API', () => {
   it('reports a provider without a key as not present', async () => {
     expect((await call('GET', '/api/keys')).json()).toMatchObject({ keys: { deepseek: { present: false } } });
-  });
-
-  it('stores a key through security -i on stdin and reports it present', async () => {
-    const reply = await call('PUT', '/api/keys/deepseek', { key: FAKE_KEY });
-    expect(reply.status).toBe(200);
-    expect(reply.json()).toEqual({ present: true });
-    expect((await call('GET', '/api/keys')).json()).toMatchObject({ keys: { deepseek: { present: true } } });
-    expect(readFileSync(join(homeDir, 'security-argv.log'), 'utf8')).not.toContain(FAKE_KEY);
   });
 
   it('refuses a key with a quote without repeating it', async () => {

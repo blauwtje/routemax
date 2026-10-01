@@ -5,7 +5,7 @@ import { commandOnPath } from '../src/doctor/command-on-path';
 import { doctorDeps } from '../src/doctor/doctor-deps';
 import { ensureProxy } from '../src/proxy/ensure-proxy';
 import { serverRegistration } from '../src/setup/register-server';
-import { readApiKey } from '../src/worker/read-api-key';
+import { readLaneKey } from '../src/worker/read-lane-key';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
@@ -17,7 +17,7 @@ describe('doctorDeps', () => {
       repoRoot: ROOT,
       config,
       registration: serverRegistration(ROOT, config.claudeBin),
-      readApiKey,
+      readLaneKey,
       ensureProxy,
       commandOnPath,
     });

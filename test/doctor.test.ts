@@ -21,7 +21,7 @@ function doctorDeps(root: string, overrides: Partial<DoctorDeps> = {}): DoctorDe
     repoRoot: ROOT,
     config: loadConfig(DEFAULT_CONFIG_PATH),
     registration: serverRegistration(ROOT, join(root, 'bin', 'claude')),
-    readApiKey: async () => SECRET,
+    readLaneKey: () => SECRET,
     ensureProxy: async () => 'running',
     commandOnPath: async () => true,
     ...overrides,
@@ -62,7 +62,9 @@ describe('runDoctorChecks', () => {
 
     const checks = await runDoctorChecks(
       doctorDeps(root, {
-        readApiKey: async () => Promise.reject(new Error('no key')),
+        readLaneKey: () => {
+          throw new Error('no key');
+        },
         commandOnPath: async () => false,
         ensureProxy: async () => {
           proxyStarted = true;
@@ -75,7 +77,7 @@ describe('runDoctorChecks', () => {
     expect(byName['routemax command'].message).toContain('npm link');
     expect(checks.filter((check) => check.name !== 'router').every((check) => !check.ok)).toBe(true);
     expect(byName['env.vars'].message).toContain('npm run setup');
-    expect(byName['DeepSeek key'].message).toContain('security add-generic-password -a "$USER" -s deepseek_api_key -w');
+    expect(byName['DeepSeek key'].message).toContain('DEEPSEEK_API_KEY');
     expect(byName['DeepSeek repair-proxy'].message).toContain('env.vars');
     expect(proxyStarted).toBe(false);
     expect(byName['MCP server'].message).toContain('npm run setup');
@@ -108,13 +110,16 @@ describe('runDoctorChecks', () => {
     await createDeepseekHome(join(root, 'home'));
     fakeClaude(root);
     const config = loadConfig(DEFAULT_CONFIG_PATH);
-    const openrouter: Provider = { name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api', keychainService: 'openrouter_api_key', models: {}, efforts: [], enabled: true, repairProxy: null };
-    const spare: Provider = { ...openrouter, name: 'Spare', keychainService: 'spare_api_key', enabled: false };
+    const openrouter: Provider = { name: 'OpenRouter', baseUrl: 'https://openrouter.ai/api', keyVariable: 'OPENROUTER_API_KEY', models: {}, efforts: [], enabled: true, repairProxy: null };
+    const spare: Provider = { ...openrouter, name: 'Spare', keyVariable: 'SPARE_API_KEY', enabled: false };
     const startedPorts: number[] = [];
     const checks = await runDoctorChecks(
       doctorDeps(root, {
         config: { ...config, providers: { ...config.providers, openrouter, spare } },
-        readApiKey: async (service) => (service === 'openrouter_api_key' ? Promise.reject(new Error('no key')) : SECRET),
+        readLaneKey: (_homeDir, variableName) => {
+          if (variableName === 'OPENROUTER_API_KEY') throw new Error('no key');
+          return SECRET;
+        },
         ensureProxy: async (start) => {
           startedPorts.push(start.port);
           return 'running';
@@ -125,7 +130,7 @@ describe('runDoctorChecks', () => {
     expect(names).toEqual(expect.arrayContaining(['DeepSeek key', 'DeepSeek repair-proxy', 'OpenRouter key']));
     expect(names).not.toContain('OpenRouter repair-proxy');
     expect(names).not.toContain('Spare key');
-    expect(checks.find((check) => check.name === 'OpenRouter key')).toMatchObject({ ok: false, message: expect.stringContaining('-s openrouter_api_key -w') });
+    expect(checks.find((check) => check.name === 'OpenRouter key')).toMatchObject({ ok: false, message: expect.stringContaining('OPENROUTER_API_KEY') });
     expect(startedPorts).toEqual([config.providers.deepseek.repairProxy?.port]);
   });
 

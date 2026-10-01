@@ -21,7 +21,7 @@ export interface DoctorDeps {
   repoRoot: string;
   config: DelegateConfig;
   registration: ServerRegistration;
-  readApiKey: (keychainService: string) => Promise<string>;
+  readLaneKey: (homeDir: string, variableName: string) => string;
   ensureProxy: (start: ProxyStart) => Promise<'running' | 'started'>;
   commandOnPath: (name: string) => Promise<boolean>;
 }
@@ -41,10 +41,10 @@ async function checkEnvVars(homeDir: string): Promise<DoctorCheck> {
 async function checkProviderKey(deps: DoctorDeps, provider: Provider): Promise<DoctorCheck> {
   const name = `${provider.name} key`;
   try {
-    await deps.readApiKey(provider.keychainService ?? '');
-    return pass(name, `The ${provider.name} key is in Keychain.`);
+    deps.readLaneKey(deps.homeDir, provider.keyVariable ?? '');
+    return pass(name, `The ${provider.name} key is in keys.env.`);
   } catch {
-    return fix(name, `No ${provider.name} key in Keychain. Store it once: security add-generic-password -a "$USER" -s ${provider.keychainService ?? ''} -w`);
+    return fix(name, `No ${provider.name} key in keys.env. Add ${provider.keyVariable ?? 'a key variable'}=<key> to ~/.config/routemax/keys.env.`);
   }
 }
 

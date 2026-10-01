@@ -24,7 +24,7 @@ beforeAll(async () => {
     repoRoot: ROOT,
     config: loadConfig(DEFAULT_CONFIG_PATH),
     registration: serverRegistration(ROOT, join(homeDir, 'bin', 'claude')),
-    readApiKey: async () => 'sk-doctor-api-DO-NOT-PRINT',
+    readLaneKey: () => 'sk-doctor-api-DO-NOT-PRINT',
     ensureProxy: async () => 'running',
     commandOnPath: async () => true,
   };
