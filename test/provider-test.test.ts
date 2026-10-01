@@ -17,7 +17,7 @@ function routerOffDeps(): DelegateDeps {
     homeDir,
     cwd: homeDir,
     env: {},
-    readApiKey: async () => {
+    readLaneKey: () => {
       throw new Error('No key is read while the router is off.');
     },
     ensureProxy: async () => {

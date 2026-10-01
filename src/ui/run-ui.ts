@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { activeConfigPath, loadConfig } from '../config/delegate-config';
 import { doctorDeps } from '../doctor/doctor-deps';
 import { ensureProxy } from '../proxy/ensure-proxy';
-import { readApiKey } from '../worker/read-api-key';
+import { readLaneKey } from '../worker/read-lane-key';
 import { apiRoutes, type UiDeps } from './api-routes';
 import { isWebBuildStale } from './is-web-build-stale';
 import { startUiServer } from './ui-server';
@@ -19,7 +19,7 @@ function liveUiDeps(homeDir: string, configPath: string): UiDeps {
     configPath,
     chezmoiBin: 'chezmoi',
     doctorDeps: () => doctorDeps(REPO_ROOT, loadConfig(configPath), homeDir),
-    delegateDeps: () => ({ config: loadConfig(configPath), homeDir, cwd: process.cwd(), env: process.env, readApiKey, ensureProxy, fetchImpl: fetch }),
+    delegateDeps: () => ({ config: loadConfig(configPath), homeDir, cwd: process.cwd(), env: process.env, readLaneKey, ensureProxy, fetchImpl: fetch }),
   };
 }
 

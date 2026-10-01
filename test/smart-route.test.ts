@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CONFIG_PATH, loadConfig } from '../src/config/delegate-config';
 import type { DelegateRequest } from '../src/delegate/delegate-result';
 import type { SmartRouteDeps } from '../src/routing/smart-route';
+import { MissingLaneKeyError } from '../src/worker/read-lane-key';
 import { smartRoute } from '../src/routing/smart-route';
 
 const shipped = loadConfig(DEFAULT_CONFIG_PATH);
@@ -15,7 +16,7 @@ const request = (overrides: Partial<DelegateRequest> = {}): DelegateRequest => (
 
 function deps(overrides: Partial<SmartRouteDeps> = {}): SmartRouteDeps {
   return {
-    readApiKey: vi.fn(async () => 'test-key'),
+    readLaneKey: vi.fn(() => 'test-key'),
     fetchImpl: vi.fn(async () => {
       throw new Error('fetchImpl should not be called');
     }),
@@ -59,7 +60,7 @@ describe('smartRoute', () => {
     const plan = await smartRoute(shipped, request({ task: 'do the thing', taskType: 'other' }), routeDeps);
     expect(plan).toMatchObject({ tier: 'pro-high', routedBy: 'check' });
     expect(plan.checkCostUsd).toBeGreaterThan(0);
-    expect(routeDeps.readApiKey).toHaveBeenCalledWith(shipped.providers.deepseek.keychainService);
+    expect(routeDeps.readLaneKey).toHaveBeenCalledWith(shipped.providers.deepseek.keyVariable);
   });
 
   it('keeps the score result when the check fails', async () => {
@@ -71,14 +72,14 @@ describe('smartRoute', () => {
 
   it('keeps the score result when the key lookup throws', async () => {
     const routeDeps = deps({
-      readApiKey: vi.fn(async () => {
-        throw new Error('DeepSeek API key not found in Keychain (service deepseek_api_key).');
+      readLaneKey: vi.fn(() => {
+        throw new MissingLaneKeyError('DEEPSEEK_API_KEY');
       }),
     });
     const plan = await smartRoute(shipped, request({ task: 'do the thing', taskType: 'other' }), routeDeps);
     expect(plan.routedBy).toBe('score');
     expect(plan.checkCostUsd).toBe(0);
-    expect(plan.routeReason).toContain('DeepSeek API key not found in Keychain');
+    expect(plan.routeReason).toContain('Lane key DEEPSEEK_API_KEY is missing');
     expect(routeDeps.fetchImpl).not.toHaveBeenCalled();
   });
 });

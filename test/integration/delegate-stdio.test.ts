@@ -7,6 +7,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { DelegateConfig } from '../../src/config/config-schema';
+import { keysEnvPath } from '../../src/config/routemax-paths';
 import { DEFAULT_CONFIG_PATH } from '../../src/config/delegate-config';
 import { migrateConfig } from '../../src/config/migrate-config';
 import { decisionLogPath } from '../../src/decision-log/decision-log';
@@ -45,7 +46,8 @@ beforeAll(async () => {
   writeFileSync(join(deepseekHome, 'env.vars'), `ANTHROPIC_BASE_URL=http://127.0.0.1:${port}\nCLAUDE_CONFIG_DIR=${deepseekHome}\nANTHROPIC_DEFAULT_HAIKU_MODEL=deepseek-v4-flash\n`);
   writeFileSync(join(deepseekHome, 'mcp.json'), '{"mcpServers":{}}\n');
   writeFileSync(join(deepseekHome, 'settings.json'), '{}\n');
-  writeFileSync(join(root, 'bin', 'security'), `#!/bin/sh\necho ${FAKE_KEY}\n`, { mode: 0o755 });
+  mkdirSync(dirname(keysEnvPath(home)), { recursive: true });
+  writeFileSync(keysEnvPath(home), `DEEPSEEK_API_KEY=${FAKE_KEY}\n`);
   writeFileSync(join(root, 'proxy', 'node_modules', '.bin', 'tsx'), `#!/bin/sh\nexec node "${FAKE_UPSTREAM}"\n`, { mode: 0o755 });
   const config = migrateConfig(JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8'))) as DelegateConfig;
   config.providers.deepseek.repairProxy = { port, logPath: join(root, 'proxy.log'), telemetryPath: join(root, 'telemetry.jsonl') };

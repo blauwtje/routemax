@@ -2,7 +2,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSy
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 import type { DelegateConfig } from '../src/config/config-schema';
 import { DEFAULT_CONFIG_PATH, loadConfig } from '../src/config/delegate-config';
 import { decisionLogPath } from '../src/decision-log/decision-log';
@@ -10,6 +10,14 @@ import { delegate, type DelegateDeps } from '../src/delegate/delegate';
 import type { DelegateRequest } from '../src/delegate/delegate-result';
 import type { ProxyStart } from '../src/proxy/ensure-proxy';
 import { routerSwitchPath } from '../src/router-switch/router-switch';
+import { selectLane } from '../src/routing/select-lane';
+import { keysEnvPath } from '../src/config/routemax-paths';
+import { readLaneKey } from '../src/worker/read-lane-key';
+
+vi.mock('../src/routing/select-lane', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/routing/select-lane')>();
+  return { ...actual, selectLane: vi.fn(actual.selectLane) };
+});
 
 const FAKE_CLAUDE = fileURLToPath(new URL('./fixtures/fake-claude.mjs', import.meta.url));
 const FAKE_KEY = 'sk-fake-DO-NOT-LEAK';
@@ -21,7 +29,8 @@ interface HarnessOptions {
   env?: Record<string, string>;
   testCommand?: string;
   ensureProxy?: DelegateDeps['ensureProxy'];
-  readApiKey?: () => Promise<string>;
+  readLaneKey?: DelegateDeps['readLaneKey'];
+  withFallback?: boolean;
   fetchImpl?: DelegateDeps['fetchImpl'];
 }
 
@@ -45,10 +54,19 @@ function harness(options: HarnessOptions = {}) {
     claudeBin: FAKE_CLAUDE,
     providers: {
       ...shipped.providers,
-      deepseek: { ...shipped.providers.deepseek, repairProxy: { port: 8787, logPath: join(root, 'proxy.log'), telemetryPath } },
+      deepseek: { ...shipped.providers.deepseek, keyVariable: 'DEEPSEEK_API_KEY', repairProxy: { port: 8787, logPath: join(root, 'proxy.log'), telemetryPath } },
+      'zai-glm': {
+        ...shipped.providers.deepseek,
+        name: 'Z.ai',
+        baseUrl: 'https://api.z.ai/api/anthropic',
+        keyVariable: 'ZAI_API_KEY',
+        models: { 'GLM-5.3': { inputUsd: 0, cacheHitUsd: 0, outputUsd: 0 } },
+        repairProxy: null,
+      },
     },
     projects: options.testCommand ? { [cwd]: { testCommand: options.testCommand } } : {},
     smartRouting: { ...shipped.smartRouting, enabled: false },
+    ...(options.withFallback ? { lanes: { fallback: { provider: 'zai-glm', model: 'GLM-5.3' }, preferGlmAtPeak: false } } : {}),
     ...options.config,
   };
   const env = {
@@ -64,11 +82,11 @@ function harness(options: HarnessOptions = {}) {
     homeDir: home,
     cwd,
     env,
-    readApiKey: options.readApiKey ?? (async () => FAKE_KEY),
+    readLaneKey: options.readLaneKey ?? (() => FAKE_KEY),
     ensureProxy: options.ensureProxy ?? (async () => 'running'),
     fetchImpl: options.fetchImpl ?? throwingFetch,
   };
-  return { deps, home, cwd, recordPath };
+  return { deps, home, cwd, root, recordPath };
 }
 
 const request = (overrides: Partial<DelegateRequest> = {}): DelegateRequest => ({
@@ -146,16 +164,23 @@ describe('delegate', () => {
     expect(record.costUsd).toBeGreaterThan(0);
   });
 
-  it('raises the worker effort for a higher Claude effort', async () => {
+  it("keeps the worker effort when Claude's own effort is higher", async () => {
     const { deps } = harness();
-    expect(await delegate(request({ taskType: 'search', claudeEffort: 'xhigh' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'max' });
+    expect(await delegate(request({ taskType: 'search', claudeEffort: 'xhigh' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'high' });
+  });
+
+  it('takes the worker effort from the task type and logs lane, peak and task effort', async () => {
+    const { deps, home, recordPath } = harness({ config: { taskEfforts: { search: 'max' } } });
+    expect(await delegate(request({ taskType: 'search' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'max' });
+    expect(JSON.parse(readFileSync(recordPath, 'utf8')).effort).toBe('max');
+    expect(logLines(home)[0]).toMatchObject({ lane: 'deepseek', provider: 'deepseek', peak: false, fallbackFrom: null, taskEffort: 'max', effort: 'max' });
   });
 
   it('lowers the worker effort to one the provider accepts', async () => {
-    const { deps } = harness();
+    const { deps } = harness({ config: { taskEfforts: { search: 'max' } } });
     const { deepseek } = deps.config.providers;
     deps.config = { ...deps.config, providers: { ...deps.config.providers, deepseek: { ...deepseek, efforts: ['low', 'high'] } } };
-    expect(await delegate(request({ taskType: 'search', claudeEffort: 'xhigh' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'high' });
+    expect(await delegate(request({ taskType: 'search' }), deps)).toMatchObject({ tier: 'flash-low', effort: 'high' });
   });
 
   it('returns use_claude for a claude-tier task without starting a worker', async () => {
@@ -269,14 +294,115 @@ describe('delegate', () => {
     expect(JSON.stringify(result)).not.toContain(FAKE_KEY);
   });
 
-  it('fails closed without starting a worker when the key lookup fails', async () => {
+  it('fails closed without starting a worker when the key read breaks for another reason', async () => {
     const { deps, recordPath } = harness({
-      readApiKey: async () => {
-        throw new Error('DeepSeek API key not found in Keychain (service deepseek_api_key).');
+      readLaneKey: () => {
+        throw new Error('keys.env could not be parsed.');
       },
     });
-    expect(await delegate(request(), deps)).toEqual({ status: 'refused', message: 'DeepSeek API key not found in Keychain (service deepseek_api_key).' });
+    expect(await delegate(request(), deps)).toEqual({ status: 'refused', message: 'keys.env could not be parsed.' });
     expect(existsSync(recordPath)).toBe(false);
+  });
+
+  it('hands the task to Claude like the off switch when keys.env is missing', async () => {
+    const { deps, home, recordPath } = harness({ readLaneKey, withFallback: true });
+    expect(existsSync(keysEnvPath(home))).toBe(false);
+    const result = await delegate(request({ taskType: 'search' }), deps);
+    expect(result).toEqual({
+      status: 'use_claude',
+      tier: 'claude',
+      agent: 'claude-opus-high',
+      model: 'opus',
+      effort: 'high',
+      next: 'Do this task yourself through the Agent tool with subagent_type "claude-opus-high" (opus, effort high), passing the full task.',
+      reason: 'disabled',
+    });
+    expect(existsSync(recordPath)).toBe(false);
+    expect(logLines(home)).toHaveLength(1);
+    expect(logLines(home)[0]).toMatchObject({ finalTier: 'claude', provider: null, model: 'opus', status: 'disabled', reason: null, routeReason: 'missing key', costUsd: 0 });
+  });
+
+  it('runs on the fallback lane when the DeepSeek key is missing', async () => {
+    const { deps, home, recordPath } = harness({ readLaneKey, withFallback: true });
+    mkdirSync(dirname(keysEnvPath(home)), { recursive: true });
+    writeFileSync(keysEnvPath(home), `ZAI_API_KEY=${FAKE_KEY}\n`);
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done', model: 'GLM-5.3', costUsd: 0 });
+    expect(JSON.parse(readFileSync(recordPath, 'utf8')).model).toBe('GLM-5.3');
+    expect(logLines(home)).toEqual([expect.objectContaining({ lane: 'zai-glm', provider: 'zai-glm', fallbackFrom: 'deepseek', status: 'done' })]);
+  });
+
+  it('runs on the fallback lane when the DeepSeek proxy cannot start', async () => {
+    const { deps, home } = harness({
+      withFallback: true,
+      ensureProxy: async () => {
+        throw new Error('proxy did not start');
+      },
+    });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done', model: 'GLM-5.3' });
+    expect(logLines(home)).toEqual([expect.objectContaining({ lane: 'zai-glm', fallbackFrom: 'deepseek' })]);
+  });
+
+  it('reruns once on the fallback lane after a 429 that changed no file', async () => {
+    const { deps, home, root, recordPath } = harness({ withFallback: true });
+    const rateLimited = join(root, 'rate-limited-claude.sh');
+    writeFileSync(rateLimited, [
+      '#!/bin/sh',
+      'if [ "$ANTHROPIC_MODEL" = "deepseek-flash" ]; then',
+      `  echo '{"type":"result","subtype":"error_during_execution","is_error":true,"result":"API Error: 429 rate limit reached","usage":{"input_tokens":0,"output_tokens":0,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}'`,
+      '  exit 1',
+      'fi',
+      `exec "${FAKE_CLAUDE}" "$@"`,
+      '',
+    ].join('\n'));
+    chmodSync(rateLimited, 0o755);
+    deps.config = { ...deps.config, claudeBin: rateLimited };
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done', model: 'GLM-5.3' });
+    expect(JSON.parse(readFileSync(recordPath, 'utf8')).model).toBe('GLM-5.3');
+    expect(logLines(home)).toEqual([
+      expect.objectContaining({ lane: 'deepseek', fallbackFrom: null, status: 'escalate' }),
+      expect.objectContaining({ lane: 'zai-glm', fallbackFrom: 'deepseek', status: 'done' }),
+    ]);
+  });
+
+  it('escalates without the fallback when the failed DeepSeek run already changed a file', async () => {
+    const { deps, home } = harness({ withFallback: true, testCommand: 'exit 1' });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'escalate', reason: 'tests-failed', model: 'deepseek-flash' });
+    expect(logLines(home)).toHaveLength(1);
+  });
+
+  it('runs on today\'s plan with today\'s log line when lane selection throws', async () => {
+    vi.mocked(selectLane).mockImplementationOnce(() => {
+      throw new Error('lane selection broke');
+    });
+    const { deps, home, recordPath } = harness({ config: { taskEfforts: { boilerplate: 'max' } } });
+    expect(await delegate(request(), deps)).toMatchObject({ status: 'done', tier: 'flash-high', model: 'deepseek-flash', effort: 'high' });
+    expect(JSON.parse(readFileSync(recordPath, 'utf8'))).toMatchObject({ model: 'deepseek-flash', subagentModel: 'deepseek-flash', effort: 'high', hasAuthToken: true });
+    const record = logLines(home)[0];
+    expect(record).toMatchObject({ provider: 'deepseek', model: 'deepseek-flash', effort: 'high', status: 'done' });
+    for (const field of ['lane', 'peak', 'fallbackFrom', 'taskEffort']) expect(record).not.toHaveProperty(field);
+  });
+
+  it('multiplies the cost and the per-call limit by the peak price factor', async () => {
+    const peak = { windowsUtc: [[1, 4], [6, 10]] as [number, number][], weekdaysOnly: true, priceFactor: 2 };
+    const costAt = async (iso: string) => {
+      const { deps, home } = harness();
+      const { deepseek } = deps.config.providers;
+      deps.config = { ...deps.config, providers: { ...deps.config.providers, deepseek: { ...deepseek, peak } } };
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date(iso));
+      try {
+        const result = await delegate(request(), deps);
+        return { cost: result.status === 'done' ? result.costUsd : NaN, record: logLines(home)[0] };
+      } finally {
+        vi.useRealTimers();
+      }
+    };
+    const offPeak = await costAt('2026-09-30T12:00:00Z');
+    const atPeak = await costAt('2026-09-30T07:00:00Z');
+    expect(offPeak.record.peak).toBe(false);
+    expect(atPeak.record.peak).toBe(true);
+    expect(atPeak.cost).toBeCloseTo(offPeak.cost * 2, 10);
+    expect(atPeak.record.costUsd).toBeCloseTo(offPeak.record.costUsd * 2, 10);
   });
 
   it("starts the provider's repair-proxy with its port and upstream", async () => {

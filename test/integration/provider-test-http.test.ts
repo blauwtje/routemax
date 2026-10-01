@@ -40,7 +40,7 @@ beforeAll(async () => {
   config.proxy = { dir: join(root, 'proxy') };
   config.workerTimeoutMs = 120_000;
   config.providers.deepseek.repairProxy = { port, logPath: join(root, 'proxy.log'), telemetryPath: join(root, 'telemetry.jsonl') };
-  config.providers.broken = { ...config.providers.deepseek, name: 'Broken', keychainService: 'bad_api_key' };
+  config.providers.broken = { ...config.providers.deepseek, name: 'Broken', keyVariable: 'BAD_API_KEY' };
   const deps = testUiDeps(home);
   writeFileSync(deps.configPath, `${JSON.stringify(config, null, 2)}\n`);
   server = await startUiServer(mkdtempSync(join(tmpdir(), 'routemax-dist-')), apiRoutes({
@@ -50,7 +50,7 @@ beforeAll(async () => {
       homeDir: home,
       cwd: root,
       env: { ...process.env, HOME: home },
-      readApiKey: async (service) => (service === 'bad_api_key' ? 'sk-wrong-key' : FAKE_KEY),
+      readLaneKey: (_homeDir, variableName) => (variableName === 'BAD_API_KEY' ? 'sk-wrong-key' : FAKE_KEY),
       ensureProxy,
       fetchImpl: fetch,
     }),

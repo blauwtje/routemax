@@ -10,7 +10,7 @@ import { delegate } from './delegate/delegate';
 import type { DelegateRequest } from './delegate/delegate-result';
 import { ensureProxy } from './proxy/ensure-proxy';
 import { isRouterEnabled, watchRouterSwitch } from './router-switch/router-switch';
-import { readApiKey } from './worker/read-api-key';
+import { readLaneKey } from './worker/read-lane-key';
 
 const TOOL_NAME = 'delegate';
 
@@ -38,7 +38,7 @@ function delegateInputShape(types: string[]) {
 }
 
 async function runDelegate(input: DelegateRequest) {
-  const result = await delegate(input, { config, homeDir: homedir(), cwd: process.cwd(), env: process.env, readApiKey, ensureProxy, fetchImpl: fetch });
+  const result = await delegate(input, { config, homeDir: homedir(), cwd: process.cwd(), env: process.env, readLaneKey, ensureProxy, fetchImpl: fetch });
   return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }], isError: result.status === 'refused' };
 }
 
