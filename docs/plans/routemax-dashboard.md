@@ -153,7 +153,7 @@ Rollback: old code keeps reading the unchanged `config/routing.json`, so reverti
 
 Design skill: design-ui
 
-Direction: pending at rung 3 (the spec says the owner picks between rendered directions before the pages are built: Task 47's design-ui run renders the directions on the demo data of Task 46, the owner picks one, and the pick goes into the tokens of `web/src/index.css` and into this line, before any page task starts).
+Direction: Rustig en strak (calm and tight), frozen in Task 47 as `docs/design/direction.json`: dark night-slate ground (L 0.17, hue 220), one teal accent `oklch(0.76 0.12 175)`, Nunito headings over Inter body with tabular numbers, a teal-filled switch band at the top of Overview, soft shadowed cards with icon chips and large numbers, charts in teal steps, compact history rows with tinted status badges. The owner's steer on the first sketches asked for charts, icon cards, a real history table with status badges, dark shown by default and one accent; the page still follows the system theme.
 
 Evidence: the spec asks for its own identity, not default shadcn: own color, type and density chosen through the better-* skills (Task 39), calm and readable at a glance. Phase 6's `base-nova` preset and the Geist font are the template the pick replaces, not the direction.
 
