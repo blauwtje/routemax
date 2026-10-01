@@ -1,0 +1,165 @@
+@layer components {
+  .shell {
+    --gutter: clamp(0.75rem, 4vw, 2rem);
+    --frame: min(100% - 2 * var(--gutter), 72rem);
+    min-block-size: 100dvh;
+  }
+
+  /* Skip link: parked off-screen, a raised chip on focus */
+  .skip {
+    position: absolute;
+    inset-block-start: var(--space-2);
+    inset-inline-start: var(--space-2);
+    z-index: calc(var(--z-popup) + 1);
+    padding: var(--space-2) var(--space-3);
+    border: var(--hairline) solid var(--line-strong);
+    border-radius: var(--r-control);
+    background: var(--surface-popup);
+    box-shadow: var(--elev-2);
+    font-weight: var(--weight-strong);
+    text-decoration: none;
+    translate: 0 -300%;
+  }
+  .skip:focus-visible { translate: 0 0; }
+
+  /* The wrapper floats and passes clicks through; only the bar takes them */
+  .header {
+    inset-block-start: 0;
+    z-index: calc(var(--z-popup) - 10);
+    padding-block-start: var(--space-3);
+    pointer-events: none;
+  }
+  @media (min-height: 36rem) { .header { position: sticky; } }
+
+  .bar {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-areas: 'brand actions' 'nav nav';
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    inline-size: var(--frame);
+    margin-inline: auto;
+    padding: var(--space-2);
+    border: var(--hairline) solid var(--line);
+    border-radius: var(--r-surface);
+    background: var(--surface);
+    box-shadow: var(--elev-2);
+    pointer-events: auto;
+  }
+
+  .brand {
+    grid-area: brand;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding-inline: var(--space-1) var(--space-2);
+    min-block-size: var(--control-md);
+    border-radius: var(--r-control);
+    text-decoration: none;
+  }
+  /* The mint tile is the logo: mint owns it, the switch track and the focus ring */
+  .tile {
+    display: grid;
+    place-items: center;
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+    border-radius: 0.5rem;
+    background: var(--accent);
+    color: var(--accent-ink);
+    box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.3), 0 1px 2px var(--shadow-ink);
+    font-size: var(--text-md);
+    font-weight: 700;
+    font-stretch: var(--stretch-display);
+    line-height: 1;
+  }
+  .wordmark {
+    font-size: var(--text-md);
+    font-weight: var(--weight-display);
+    font-stretch: var(--stretch-display);
+    letter-spacing: var(--tracking-display);
+  }
+
+  .nav { grid-area: nav; min-inline-size: 0; }
+  .list {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .link {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    min-block-size: var(--control-md);
+    padding-inline: var(--space-1);
+    border-radius: var(--r-control);
+    color: var(--ink-muted);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--dur-feedback) var(--ease-out), background-color var(--dur-feedback) var(--ease-out);
+  }
+  .link:hover { color: var(--ink); background: var(--hover); }
+  .link:active { background: var(--press); }
+  .link[aria-current='page'] { color: var(--ink); background: transparent; }
+  .link:focus-visible, .brand:focus-visible { outline-offset: 0; }
+
+  /* The lighter pill: slides on translate and width over 220ms; hidden until measured */
+  .pill {
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    inline-size: var(--mark-width, 0);
+    translate: var(--mark-left, 0) 0;
+    border-radius: var(--r-control);
+    background: var(--surface-2);
+    box-shadow: var(--elev-1);
+    opacity: 0;
+  }
+  .pill[data-ready] { opacity: 1; }
+  .pill[data-animate] {
+    transition: translate var(--dur-slide) var(--ease-out-quint), inline-size var(--dur-slide) var(--ease-out-quint);
+  }
+
+  .actions {
+    grid-area: actions;
+    display: inline-flex;
+    align-items: center;
+    justify-self: end;
+    gap: var(--space-2);
+  }
+  /* "On" and "Off" take the same room so the switch does not step when it flips */
+  .router > span:last-child { min-inline-size: 3ch; }
+
+  .main {
+    inline-size: var(--frame);
+    margin-inline: auto;
+    padding-block: var(--space-8) var(--space-12);
+    min-inline-size: 0;
+  }
+  .main:focus { outline: none; }
+
+  @media (min-width: 40rem) {
+    .bar {
+      grid-template-columns: auto 1fr auto;
+      grid-template-areas: 'brand nav actions';
+      gap: var(--space-4);
+    }
+    .list { display: inline-grid; grid-template-columns: repeat(4, auto); }
+    .nav { display: flex; }
+    .link { padding-inline: var(--space-3); }
+    .main { padding-block-start: var(--space-10); }
+  }
+
+  @media (pointer: coarse) {
+    .link, .brand { min-block-size: var(--control-touch); }
+  }
+
+  /* Reduced motion: the pill jumps; only color washes remain, under 80ms */
+  @media (prefers-reduced-motion: reduce) {
+    .pill[data-animate] { transition: none; }
+    .link { transition-duration: var(--dur-fade); }
+  }
+}
