@@ -6,9 +6,8 @@ import { cn } from '@/lib/utils';
 
 const SECTION_COPY: Record<Section, { label: string; description: string }> = {
   overview: { label: 'Overview', description: 'Spend, tiers and health at a glance.' },
-  history: { label: 'History', description: 'Every call the router made, audited.' },
+  activity: { label: 'Activity', description: 'Every call the router made, audited.' },
   routing: { label: 'Routing', description: 'Tiers, efforts, agents and rules.' },
-  providers: { label: 'Providers', description: 'Keys, models and prices per provider.' },
   settings: { label: 'Settings', description: 'Budget, timeouts and project commands.' },
 };
 
