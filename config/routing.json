@@ -1,13 +1,13 @@
 {
   "tiers": {
-    "flash-low": { "model": "deepseek-flash", "effort": "low" },
+    "flash-low": { "model": "deepseek-flash", "effort": "high" },
     "flash-high": { "model": "deepseek-flash", "effort": "high" },
     "pro-high": { "model": "deepseek-v4-pro", "effort": "high" }
   },
   "rules": [
     { "id": "search-read-summarize", "taskTypes": ["search", "read", "summarize"], "tier": "flash-low" },
     { "id": "boilerplate-tests-edits", "taskTypes": ["boilerplate", "tests", "simple-edit"], "tier": "flash-high" },
-    { "id": "build-with-spec", "taskTypes": ["build"], "tier": "pro-high" },
+    { "id": "build-with-spec", "taskTypes": ["build"], "tier": "flash-high" },
     {
       "id": "claude-only",
       "taskTypes": ["architecture", "debugging", "security", "auth", "migration", "concurrency"],
@@ -40,7 +40,7 @@
   },
   "budget": { "totalUsd": 10, "perCallUsd": 0.25 },
   "prices": {
-    "deepseek-flash": { "inputUsd": 0.3, "cacheHitUsd": 0.006, "outputUsd": 1.2 },
+    "deepseek-flash": { "inputUsd": 0.15, "cacheHitUsd": 0.006, "outputUsd": 0.6 },
     "deepseek-v4-pro": { "inputUsd": 1.32, "cacheHitUsd": 0.044, "outputUsd": 3.96 }
   },
   "workerTimeoutMs": 600000,

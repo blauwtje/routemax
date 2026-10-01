@@ -15,7 +15,7 @@ describe('routeTask', () => {
   it.each([
     ['boilerplate', 'flash-high', 'boilerplate-tests-edits'],
     ['tests', 'flash-high', 'boilerplate-tests-edits'],
-    ['build', 'pro-high', 'build-with-spec'],
+    ['build', 'flash-high', 'build-with-spec'],
     ['security', 'claude', 'claude-only'],
     ['migration', 'claude', 'claude-only'],
   ])('raises %s to %s', (taskType, tier, raisedBy) => {
