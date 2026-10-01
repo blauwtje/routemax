@@ -217,6 +217,7 @@ export function RoutingPage() {
           type="number"
           step="1"
           min={0}
+          placeholder="3000"
           suffix="ms"
           disabled={smartEnabled === false}
           error={fieldMessage(errors.smartRouting?.checkTimeoutMs)}

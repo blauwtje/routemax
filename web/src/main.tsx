@@ -1,11 +1,11 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './app';
-import { captureToken } from './lib/api-client';
 import '@fontsource-variable/mona-sans/wdth.css';
 import '@fontsource/martian-mono/400.css';
 import '@fontsource/martian-mono/500.css';
 import './styles/global.css';
+import { App } from './app';
+import { captureToken } from './lib/api-client';
 
 if (captureToken(window.location.hash, window.sessionStorage)) {
   window.history.replaceState(null, '', window.location.pathname + window.location.search);

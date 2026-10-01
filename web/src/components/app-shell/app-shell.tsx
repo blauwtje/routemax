@@ -75,9 +75,13 @@ export function AppShell({ section, onNavigate, children }: AppShellProps) {
     const measure = () => {
       const active = list.querySelector<HTMLElement>('[aria-current="page"]');
       if (active === null) return;
+      // Rects against the list share one origin with the pill, whatever the offsetParent is.
+      const activeRect = active.getBoundingClientRect();
+      const left = activeRect.left - list.getBoundingClientRect().left;
+      const width = activeRect.width;
       setMark((previous) => {
-        if (previous?.left === active.offsetLeft && previous.width === active.offsetWidth) return previous;
-        return { left: active.offsetLeft, width: active.offsetWidth, animate: previous !== null };
+        if (previous?.left === left && previous.width === width) return previous;
+        return { left, width, animate: previous !== null };
       });
     };
     measure();

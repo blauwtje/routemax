@@ -42,6 +42,7 @@
   .card {
     display: grid;
     align-content: start;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-4);
     min-inline-size: 0;
     padding: var(--space-5);
@@ -114,8 +115,13 @@
   }
 
   /* Spend */
-  .spendBody { display: grid; gap: var(--space-4); }
+  /* Loaded and skeleton share one reserved height so the data landing moves nothing; the loaded card may still grow past it. */
+  .spendBody { display: grid; align-content: start; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); min-inline-size: 0; min-block-size: 15rem; }
+  @media (min-width: 36rem) {
+    .spendBody { min-block-size: 11.5rem; }
+  }
   .figureRow {
+    min-inline-size: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
@@ -126,6 +132,10 @@
     font-weight: var(--weight-medium);
     line-height: var(--leading-tight);
     letter-spacing: -0.02em;
+    /* No fixed box and no overflow clip: text-spacing overrides widen it, so it wraps or grows */
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    overflow-wrap: anywhere;
   }
   .ofTotal { color: var(--ink-muted); font-size: var(--text-sm); }
   .left {
@@ -200,6 +210,7 @@
     display: inline-flex;
     gap: 2px;
     padding: 2px;
+    flex: none;
     border-radius: var(--r-control);
     background: var(--field);
     box-shadow: var(--inset-field);
@@ -214,6 +225,7 @@
     font: inherit;
     font-size: var(--text-sm);
     font-weight: var(--weight-medium);
+    white-space: nowrap;
     cursor: pointer;
     transition: background-color var(--dur-feedback) var(--ease-out), color var(--dur-feedback) var(--ease-out);
   }
@@ -241,6 +253,9 @@
     text-align: start;
     vertical-align: baseline;
   }
+  @media (max-width: 22.5rem) {
+    .ledger th, .ledger td { padding-inline: var(--space-1); }
+  }
   .ledger thead th {
     color: var(--ink-muted);
     font-weight: var(--weight-medium);
@@ -253,7 +268,13 @@
   .ledger tbody tr:last-child > * { border-block-end: 0; }
   .ledger thead th:first-child { inline-size: 45%; }
   .id { overflow-wrap: anywhere; }
-  .tierName { display: grid; justify-items: start; gap: var(--space-1); }
+  /* Badge and note share a line; on a narrow cell the note wraps under the badge, for every row alike */
+  .tierName { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); }
+  /* Rows share one height whether or not they carry the note */
+  .ledger tbody tr { block-size: calc(1.5rem + var(--space-3) * 2); }
+  @media (pointer: coarse) {
+    .ledger tbody tr { block-size: calc(var(--control-touch) + var(--space-3) * 2); }
+  }
   .tierName .hint { color: var(--ink-muted); font-size: var(--text-sm); }
 
   .minis {
@@ -283,8 +304,10 @@
 
   /* Health: the list owns its hairlines; the card pads only the head */
   .healthTitle { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); }
-  .healthList { margin-inline: calc(var(--space-2) * -1); }
-  .healthNotice { display: grid; }
+  /* min-inline-size lets the grid item shrink below its nowrap content; a long check message wraps here instead of widening the card */
+  .healthList { min-inline-size: 0; margin-inline: calc(var(--space-2) * -1); --list-subtitle-wrap: normal; --list-subtitle-break: anywhere; }
+  .healthNotice { min-inline-size: 0; }
+  .healthNotice { display: grid; grid-template-columns: minmax(0, 1fr); }
   @media (prefers-reduced-motion: no-preference) {
     .healthList { transition: opacity var(--dur-feedback) var(--ease-out); }
     .healthList[data-running] { transition-delay: var(--wait-threshold); }
@@ -319,7 +342,8 @@
   }
   .skeleton[data-shape='verdict'] { block-size: 1.5rem; inline-size: 70%; }
   .skeleton[data-shape='note'] { block-size: 2.625rem; }
-  .skeleton[data-shape='figure'] { block-size: 2.5rem; inline-size: 55%; }
+  .spendBody .skeleton[data-shape='note'] { block-size: 6.5rem; }
+  .skeleton[data-shape='figure'] { block-size: calc(var(--text-figure) * var(--leading-tight)); inline-size: 55%; }
   .skeleton[data-shape='bar'] { block-size: 6px; border-radius: var(--r-full); }
   .skeleton[data-shape='table'] { block-size: 11.5rem; }
   @media (prefers-reduced-motion: no-preference) {

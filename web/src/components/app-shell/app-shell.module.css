@@ -33,7 +33,7 @@
 
   .bar {
     display: grid;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-areas: 'brand actions' 'nav nav';
     align-items: center;
     gap: var(--space-2) var(--space-3);
@@ -140,6 +140,12 @@
     min-inline-size: 0;
   }
   .main:focus { outline: none; }
+
+  /* At 320px the four labels and the actions row only fit with tighter type and gutters */
+  @media (max-width: 22.5rem) {
+    .bar { padding: var(--space-1); }
+    .link { padding-inline: 0; font-size: var(--text-xs); }
+  }
 
   @media (min-width: 40rem) {
     .bar {

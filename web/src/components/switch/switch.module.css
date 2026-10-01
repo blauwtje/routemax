@@ -25,8 +25,19 @@
     cursor: inherit;
     transition: background-color var(--dur-lamp) var(--ease-out), border-color var(--dur-lamp) var(--ease-out);
   }
-  /* Hit area reaches 24px even on the small switch */
-  .root::after { content: ''; position: absolute; inset: -0.25rem -0.125rem; }
+  /* Invisible hit area centred on the track: 24px minimum, 44px under a coarse pointer; the visual size is unchanged */
+  .root::after {
+    content: '';
+    position: absolute;
+    inset-block-start: 50%;
+    inset-inline-start: 50%;
+    inline-size: max(100%, 1.5rem);
+    block-size: max(100%, 1.5rem);
+    translate: -50% -50%;
+  }
+  @media (pointer: coarse) {
+    .root::after { inline-size: max(100%, 2.75rem); block-size: 2.75rem; }
+  }
 
   .root[data-checked] { background: var(--accent); border-color: color-mix(in oklch, var(--accent) 70%, black); }
   .root:hover:not([data-disabled]) { border-color: var(--ink-muted); }
